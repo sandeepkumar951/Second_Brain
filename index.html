@@ -303,25 +303,128 @@ nav::-webkit-scrollbar{display:none;}
 @media(min-width:1024px){.summary-cards-row{grid-template-columns:1fr 1fr 1fr;gap:20px;}.lang-two-col{grid-template-columns:1fr 1fr !important;}}
 input[type="number"],input[type="text"],input[type="time"],select{font-size:max(16px,1em);}
 @media(max-width:768px){input[type="number"],input[type="text"],input[type="time"],select{font-size:16px !important;}}
-/* ── Issue 1: Settings habit rows ── */
-.habit-item{display:flex;align-items:flex-start;gap:9px;padding:11px 14px;border-bottom:1px solid rgba(139,92,246,.06);transition:background 0.15s;}
+
+/* ══════════════════════════════════════
+   SETTINGS HABIT ROWS — Fix 2
+   Rebalanced so text is never truncated
+══════════════════════════════════════ */
+.habit-item{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:11px 14px;
+  border-bottom:1px solid rgba(139,92,246,.06);
+  transition:background 0.15s;
+  min-height:54px;
+}
 .habit-item:hover{background:rgba(139,92,246,0.03);}
 .habit-item:last-child{border-bottom:none;}
-.habit-info{flex:1;min-width:0;}
-.habit-name{font-size:15px;font-weight:800;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%;}
-.habit-meta{font-size:11px;color:var(--text-muted);margin-top:1px;}
-.habit-pts-badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:var(--r-pill);background:var(--yellow-50);color:var(--yellow-600);border:1px solid var(--yellow-border);flex-shrink:0;}
-.habit-edit-btn{font-size:10px;font-weight:600;padding:4px 10px;border-radius:var(--r-pill);border:1px solid var(--purple-200);background:var(--purple-100);color:var(--purple-600);cursor:pointer;flex-shrink:0;font-family:var(--font);}
+.habit-info{
+  flex:1;
+  min-width:0;
+  padding-right:4px;
+}
+.habit-name{
+  font-size:13px;
+  font-weight:800;
+  color:var(--text-primary);
+  white-space:normal;
+  overflow:hidden;
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  line-height:1.35;
+  word-break:break-word;
+}
+.habit-meta{
+  font-size:10px;
+  color:var(--text-muted);
+  margin-top:2px;
+  white-space:normal;
+  line-height:1.3;
+}
+.habit-pts-badge{
+  font-size:9px;
+  font-weight:700;
+  padding:2px 6px;
+  border-radius:var(--r-pill);
+  background:var(--yellow-50);
+  color:var(--yellow-600);
+  border:1px solid var(--yellow-border);
+  flex-shrink:0;
+  white-space:nowrap;
+}
+.habit-actions{
+  display:flex;
+  align-items:center;
+  gap:4px;
+  flex-shrink:0;
+}
+.habit-edit-btn{
+  font-size:10px;
+  font-weight:600;
+  padding:4px 8px;
+  border-radius:var(--r-pill);
+  border:1px solid var(--purple-200);
+  background:var(--purple-100);
+  color:var(--purple-600);
+  cursor:pointer;
+  flex-shrink:0;
+  font-family:var(--font);
+  white-space:nowrap;
+}
 .habit-edit-btn:hover{background:var(--purple-600);color:#fff;}
-.habit-del-btn{font-size:14px;color:var(--text-muted);cursor:pointer;background:none;border:none;padding:0 2px;line-height:1;flex-shrink:0;}
+.habit-del-btn{
+  font-size:14px;
+  color:var(--text-muted);
+  cursor:pointer;
+  background:none;
+  border:none;
+  padding:0 2px;
+  line-height:1;
+  flex-shrink:0;
+}
 .habit-del-btn:hover{color:var(--red-500);}
-.habit-icon-wrap{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;background:var(--purple-50);border:1px solid var(--purple-200);flex-shrink:0;cursor:pointer;overflow:hidden;position:relative;transition:all 0.2s;}
+.habit-icon-wrap{
+  width:38px;
+  height:38px;
+  min-width:38px;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:20px;
+  background:var(--purple-50);
+  border:1px solid var(--purple-200);
+  flex-shrink:0;
+  cursor:pointer;
+  overflow:hidden;
+  position:relative;
+  transition:all 0.2s;
+}
 .habit-icon-wrap:hover{border-color:var(--purple-400);transform:scale(1.05);}
 .habit-icon-wrap img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
-.habit-icon-edit-dot{position:absolute;bottom:0;right:0;width:12px;height:12px;border-radius:50%;background:var(--purple-600);color:#fff;font-size:7px;display:flex;align-items:center;justify-content:center;}
+.habit-icon-edit-dot{
+  position:absolute;bottom:0;right:0;
+  width:11px;height:11px;border-radius:50%;
+  background:var(--purple-600);color:#fff;font-size:6px;
+  display:flex;align-items:center;justify-content:center;
+}
+/* On very small screens stack actions below text */
+@media(max-width:400px){
+  .habit-item{flex-wrap:wrap;gap:6px;}
+  .habit-info{flex:1 1 100%;order:2;}
+  .habit-icon-wrap{order:1;}
+  .habit-pts-badge{order:3;}
+  .habit-actions{order:4;width:100%;justify-content:flex-end;}
+}
 </style>
+
 <style>
-/* ── Issue 2: Weekly task rows ── */
+/* ══════════════════════════════════════
+   WEEKLY PAGE — Fix 3
+   Rebalanced rows so text stays readable
+══════════════════════════════════════ */
 .weekly-filter-row{display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none;padding:4px 16px 8px;-webkit-overflow-scrolling:touch;}
 .weekly-filter-row::-webkit-scrollbar{display:none;}
 .weekly-filter-btn{font-size:11px;font-weight:600;padding:5px 14px;border-radius:var(--r-pill);border:1.5px solid rgba(200,195,240,.7);background:#fff;color:var(--text-muted);cursor:pointer;transition:all .2s;font-family:var(--font);flex-shrink:0;}
@@ -346,24 +449,108 @@ input[type="number"],input[type="text"],input[type="time"],select{font-size:max(
 .weekly-tasks-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #f0f0f8;}
 .weekly-tasks-title{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:900;color:var(--text-primary);}
 .weekly-tasks-count{font-size:11px;font-weight:600;color:var(--text-muted);background:#f0f0f8;border-radius:var(--r-pill);padding:3px 10px;}
-.weekly-task-item{display:flex;align-items:center;gap:10px;padding:12px 18px;border-bottom:1px solid #f8f8fc;transition:background .15s;}
+/* Weekly task row — primary fix */
+.weekly-task-item{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:11px 14px;
+  border-bottom:1px solid #f8f8fc;
+  transition:background .15s;
+  min-height:52px;
+}
 .weekly-task-item:last-child{border-bottom:none;}
 .weekly-task-item:hover{background:#fafafe;}
 .weekly-task-item.wt-done{background:#f0fdf4;}
-.weekly-task-icon{width:32px;height:32px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;border:1.5px solid rgba(200,195,240,.5);}
-.weekly-task-body{flex:1;min-width:0;}
-.weekly-task-name{font-size:15px;font-weight:700;color:var(--text-primary);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.weekly-task-icon{
+  width:32px;height:32px;min-width:32px;
+  border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:15px;flex-shrink:0;
+  border:1.5px solid rgba(200,195,240,.5);
+}
+.weekly-task-body{
+  flex:1;
+  min-width:0;
+  padding-right:4px;
+}
+.weekly-task-name{
+  font-size:13px;
+  font-weight:700;
+  color:var(--text-primary);
+  line-height:1.35;
+  white-space:normal;
+  overflow:hidden;
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  word-break:break-word;
+}
 .weekly-task-item.wt-done .weekly-task-name{text-decoration:line-through;color:var(--text-muted);}
-.weekly-task-note{font-size:10px;color:var(--text-muted);margin-top:2px;}
-.weekly-day-badge{font-size:9px;font-weight:700;padding:2px 8px;border-radius:var(--r-pill);flex-shrink:0;}
-.weekly-edit-btn{font-size:10px;font-weight:700;padding:4px 10px;border-radius:var(--r-pill);border:1px solid var(--purple-200);background:var(--purple-50);color:var(--purple-600);cursor:pointer;font-family:var(--font);display:flex;align-items:center;gap:3px;white-space:nowrap;flex-shrink:0;}
+.weekly-task-note{font-size:10px;color:var(--text-muted);margin-top:2px;line-height:1.3;}
+.weekly-task-actions{
+  display:flex;
+  align-items:center;
+  gap:4px;
+  flex-shrink:0;
+}
+.weekly-day-badge{
+  font-size:9px;font-weight:700;
+  padding:2px 7px;
+  border-radius:var(--r-pill);
+  flex-shrink:0;
+  white-space:nowrap;
+}
+.weekly-edit-btn{
+  font-size:10px;font-weight:700;
+  padding:4px 9px;
+  border-radius:var(--r-pill);
+  border:1px solid var(--purple-200);
+  background:var(--purple-50);
+  color:var(--purple-600);
+  cursor:pointer;
+  font-family:var(--font);
+  white-space:nowrap;
+  flex-shrink:0;
+}
 .weekly-edit-btn:hover{background:var(--purple-600);color:#fff;}
-.weekly-del-btn{width:24px;height:24px;border-radius:50%;border:1px solid #fee2e2;background:#fff5f5;color:var(--red-400);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;}
+.weekly-del-btn{
+  width:24px;height:24px;
+  border-radius:50%;
+  border:1px solid #fee2e2;
+  background:#fff5f5;
+  color:var(--red-400);
+  font-size:11px;
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .15s;flex-shrink:0;
+}
 .weekly-del-btn:hover{background:var(--red-500);color:#fff;border-color:var(--red-500);}
-.weekly-cb{width:20px;height:20px;border-radius:50%;border:2px solid rgba(200,195,240,.8);flex-shrink:0;position:relative;cursor:pointer;transition:all .2s;background:#fff;}
-.weekly-cb::after{content:'';position:absolute;top:3px;left:6px;width:5px;height:8px;border:2.5px solid #fff;border-top:none;border-left:none;transform:rotate(45deg);opacity:0;transition:opacity .15s;}
+.weekly-cb{
+  width:20px;height:20px;min-width:20px;
+  border-radius:50%;
+  border:2px solid rgba(200,195,240,.8);
+  flex-shrink:0;
+  position:relative;
+  cursor:pointer;
+  transition:all .2s;
+  background:#fff;
+}
+.weekly-cb::after{
+  content:'';position:absolute;
+  top:3px;left:6px;width:5px;height:8px;
+  border:2.5px solid #fff;border-top:none;border-left:none;
+  transform:rotate(45deg);opacity:0;transition:opacity .15s;
+}
 .weekly-cb.checked{background:var(--green-500);border-color:var(--green-500);}
 .weekly-cb.checked::after{opacity:1;}
+/* On mobile compress actions before text */
+@media(max-width:479px){
+  .weekly-task-item{padding:10px 12px;gap:7px;}
+  .weekly-task-name{font-size:13px;}
+  .weekly-edit-btn{padding:3px 7px;font-size:9px;}
+  .weekly-day-badge{font-size:8px;padding:2px 5px;}
+}
 .weekly-empty{padding:32px;text-align:center;color:var(--text-muted);font-size:13px;}
 .weekly-edit-modal{position:fixed;inset:0;background:rgba(22,17,58,.5);backdrop-filter:blur(5px);z-index:600;display:none;align-items:center;justify-content:center;padding:14px;}
 .weekly-edit-modal.open{display:flex;}
@@ -462,20 +649,18 @@ input[type="number"],input[type="text"],input[type="time"],select{font-size:max(
 .hydro-bar-label{display:flex;justify-content:space-between;font-size:9px;font-weight:500;color:#94a3b8;margin-top:3px;}
 .hydro-insight{background:#f0f9ff;border:1px solid #bae6fd;border-radius:var(--r-sm);padding:8px 12px;margin-top:8px;}
 .hydro-insight-text{font-size:11px;font-weight:500;color:#0369a1;font-style:italic;}
-/* ── Issue 3: Junk food mobile fix ── */
+
+/* ══════════════════════════════════════
+   JUNK FOOD SELECTOR — Fix 1
+   Desktop: keep card grid, fix selection state
+   Mobile: clean list rows, full-width tappable
+══════════════════════════════════════ */
 .jnk-root{min-height:100vh;background:linear-gradient(145deg,#f5f3ff 0%,#ede9fe 40%,#f0f4ff 100%);padding:28px 32px 60px;}
 @media(max-width:768px){.jnk-root{padding:14px 14px 60px;}}
 @media(max-width:480px){
-.jnk-root{padding:14px 10px 60px;overflow-x:hidden;max-width:100%;box-sizing:border-box;}
-.jnk-section-wrap{padding:14px 12px;}
-.jnk-cat-grid{grid-template-columns:repeat(2,1fr) !important;gap:8px;width:100%;box-sizing:border-box;}
-.jnk-cat-card{padding:10px 10px;min-width:0;box-sizing:border-box;}
-.jnk-cat-name{font-size:12px;}
-.jnk-cat-sub{font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.jnk-cat-emoji{width:36px;height:36px;font-size:18px;}
-.jnk-cat-toggle{width:22px;height:22px;font-size:11px;}
+  .jnk-root{padding:14px 10px 60px;overflow-x:hidden;max-width:100%;box-sizing:border-box;}
+  .jnk-section-wrap{padding:14px 12px;}
 }
-.jnk-cat-grid .jnk-cat-card:last-child{grid-column:auto !important;}
 .jnk-header{display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:20px;padding:18px 24px;margin-bottom:22px;border:1px solid rgba(139,92,246,0.10);box-shadow:0 4px 24px rgba(139,92,246,0.08);flex-wrap:wrap;gap:14px;}
 .jnk-header-left{display:flex;align-items:center;gap:12px;}
 .jnk-header-icon{width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,#ede9fe,#ddd6fe);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
@@ -505,20 +690,126 @@ input[type="number"],input[type="text"],input[type="time"],select{font-size:max(
 .jnk-section-title{font-size:14px;font-weight:900;color:#1e1b4b;letter-spacing:-0.2px;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
 .jnk-section-title span{font-size:12px;font-weight:600;color:#9c87d4;}
 .jnk-section-wrap{background:#fff;border-radius:20px;padding:20px 22px;border:1px solid rgba(139,92,246,0.08);box-shadow:0 4px 24px rgba(139,92,246,0.08);margin-bottom:22px;}
-.jnk-cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:4px;}
+
+/* Desktop grid — keep existing multi-column layout */
+.jnk-cat-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:12px;
+  margin-bottom:4px;
+}
 @media(max-width:1024px){.jnk-cat-grid{grid-template-columns:repeat(2,1fr);}}
-@media(max-width:480px){.jnk-cat-grid{grid-template-columns:1fr 1fr;}}
-@media(max-width:320px){.jnk-cat-grid{grid-template-columns:1fr;}}
-.jnk-cat-card{background:#fff;border-radius:16px;padding:14px 16px;border:1.5px solid #ede9fe;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all 0.18s cubic-bezier(.34,1.56,.64,1);position:relative;user-select:none;}
-.jnk-cat-card:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(139,92,246,0.12);border-color:#c4b5fd;}
-.jnk-cat-card.selected{background:linear-gradient(135deg,#f5f3ff,#ede9fe);border-color:#8b5cf6;box-shadow:0 4px 18px rgba(139,92,246,0.18);}
-.jnk-cat-emoji{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;background:#f5f3ff;border:1px solid #ede9fe;transition:background 0.18s;}
+/* Prevent last card spanning on all sizes */
+.jnk-cat-grid .jnk-cat-card:last-child{grid-column:auto !important;}
+
+/* Desktop card — keep existing look, only fix selection */
+.jnk-cat-card{
+  background:#fff;
+  border-radius:16px;
+  padding:14px 16px;
+  border:2px solid #ede9fe;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  cursor:pointer;
+  transition:all 0.18s cubic-bezier(.34,1.56,.64,1);
+  position:relative;
+  user-select:none;
+  -webkit-tap-highlight-color:transparent;
+}
+.jnk-cat-card:hover{
+  transform:translateY(-2px);
+  box-shadow:0 6px 20px rgba(139,92,246,0.12);
+  border-color:#c4b5fd;
+}
+.jnk-cat-card.selected{
+  background:linear-gradient(135deg,#f5f3ff,#ede9fe);
+  border-color:#7c3aed;
+  box-shadow:0 4px 18px rgba(139,92,246,0.22);
+  transform:none;
+}
+.jnk-cat-emoji{
+  width:44px;height:44px;
+  border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;flex-shrink:0;
+  background:#f5f3ff;border:1px solid #ede9fe;
+  transition:background 0.18s;
+}
 .jnk-cat-card.selected .jnk-cat-emoji{background:#ddd6fe;border-color:#c4b5fd;}
 .jnk-cat-body{flex:1;min-width:0;}
 .jnk-cat-name{font-size:13px;font-weight:800;color:#1e1b4b;margin-bottom:2px;}
 .jnk-cat-sub{font-size:10px;color:#9c87d4;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.jnk-cat-toggle{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;transition:all 0.18s;background:#f5f3ff;border:1.5px solid #ddd6fe;color:#a78bfa;font-weight:900;}
-.jnk-cat-card.selected .jnk-cat-toggle{background:#7c3aed;border-color:#7c3aed;color:#fff;font-size:12px;}
+.jnk-cat-toggle{
+  width:26px;height:26px;
+  border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;font-weight:900;
+  flex-shrink:0;
+  transition:all 0.18s cubic-bezier(.34,1.56,.64,1);
+  background:#f5f3ff;
+  border:2px solid #ddd6fe;
+  color:#a78bfa;
+}
+.jnk-cat-card.selected .jnk-cat-toggle{
+  background:#7c3aed;
+  border-color:#7c3aed;
+  color:#fff;
+  font-size:13px;
+}
+
+/* Mobile: replace cards with clean full-width list rows */
+@media(max-width:640px){
+  .jnk-cat-grid{
+    display:flex;
+    flex-direction:column;
+    gap:0;
+    border-radius:14px;
+    overflow:hidden;
+    border:1px solid #ede9fe;
+    box-sizing:border-box;
+    width:100%;
+  }
+  .jnk-cat-card{
+    border-radius:0;
+    border:none;
+    border-bottom:1px solid #f3f0ff;
+    padding:13px 14px;
+    transform:none !important;
+    box-shadow:none !important;
+    background:#fff;
+    gap:12px;
+  }
+  .jnk-cat-card:last-child{border-bottom:none;}
+  .jnk-cat-card:hover{
+    background:#faf8ff;
+    transform:none !important;
+    box-shadow:none !important;
+  }
+  .jnk-cat-card.selected{
+    background:#f5f3ff;
+    border-color:transparent;
+    border-bottom:1px solid #ddd6fe;
+    box-shadow:none !important;
+    transform:none !important;
+  }
+  .jnk-cat-card.selected:last-child{border-bottom:none;}
+  .jnk-cat-emoji{
+    width:38px;height:38px;
+    border-radius:10px;
+    font-size:20px;
+    flex-shrink:0;
+  }
+  .jnk-cat-name{font-size:14px;font-weight:700;color:#1e1b4b;}
+  .jnk-cat-sub{font-size:11px;color:#9c87d4;white-space:normal;overflow:visible;text-overflow:unset;}
+  .jnk-cat-toggle{
+    width:28px;height:28px;
+    font-size:16px;
+    flex-shrink:0;
+  }
+  .jnk-cat-card.selected .jnk-cat-toggle{font-size:14px;}
+}
+
 .jnk-selected-row{background:#fff;border-radius:18px;padding:16px 20px;border:1px solid rgba(139,92,246,0.10);box-shadow:0 2px 16px rgba(139,92,246,0.07);display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:24px;}
 .jnk-chips-area{display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex:1;}
 .jnk-chip{display:inline-flex;align-items:center;gap:6px;background:#f5f3ff;border:1.5px solid #ddd6fe;border-radius:999px;padding:6px 12px;font-size:12px;font-weight:700;color:#4c1d95;}
@@ -612,7 +903,7 @@ input[type="number"],input[type="text"],input[type="time"],select{font-size:max(
 .biry-card{background:linear-gradient(135deg,#fffbeb,#fef3c7);border:1.5px solid #fde68a;border-radius:16px;padding:16px 18px;margin-bottom:12px;}
 .biry-row{display:flex;align-items:center;gap:10px;cursor:pointer;padding:9px 10px;border-radius:11px;transition:background .2s;}
 .biry-row:hover{background:rgba(245,158,11,.1);}
-/* ── Issue 5: Biryani slot circles ── */
+/* Biryani slot circles */
 .b-slots-row{display:flex;align-items:center;gap:8px;flex-shrink:0;}
 .b-slot{width:22px;height:22px;border-radius:50%;border:2.5px solid #f59e0b;background:transparent;transition:all 0.3s cubic-bezier(.34,1.56,.64,1);}
 .b-slot.filled{background:#f59e0b;box-shadow:0 0 10px rgba(245,158,11,0.45);transform:scale(1.1);}
@@ -783,6 +1074,17 @@ input[type="number"],input[type="text"],input[type="time"],select{font-size:max(
 .pwa-install-banner{position:fixed;bottom:max(80px, calc(60px + env(safe-area-inset-bottom)));left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#7C3AED,#4F46E5);color:white;padding:12px 20px;border-radius:99px;font-size:13px;font-weight:700;z-index:9999;display:flex;align-items:center;gap:10px;box-shadow:0 8px 32px rgba(124,58,237,0.4);white-space:nowrap;font-family:var(--font);}
 .pwa-install-btn{background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);color:white;border-radius:99px;padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font);}
 .pwa-install-close{background:none;border:none;color:rgba(255,255,255,0.7);font-size:18px;cursor:pointer;line-height:1;}
+/* Settings section-labels */
+.section-labels{display:flex;gap:5px;flex-wrap:wrap;padding:8px 14px;border-bottom:1px solid rgba(139,92,246,.06);}
+.slabel{font-size:10px;font-weight:600;padding:3px 10px;border-radius:var(--r-pill);cursor:pointer;border:1px solid rgba(200,195,240,.6);background:rgba(255,255,255,.6);color:var(--text-muted);transition:all .2s;}
+.slabel.active{background:var(--purple-600);border-color:var(--purple-600);color:#fff;}
+.settings-input{width:100%;font-size:13px;padding:9px 12px;border:1.5px solid rgba(200,195,240,.7);border-radius:var(--r-pill);background:rgba(255,255,255,.7);color:var(--text-primary);outline:none;font-family:var(--font);}
+.settings-row{display:flex;gap:7px;}
+.settings-select{flex:1;font-size:12px;padding:8px 10px;border:1.5px solid rgba(200,195,240,.7);border-radius:var(--r-sm);background:rgba(255,255,255,.7);color:var(--text-primary);outline:none;font-family:var(--font);}
+.settings-pts{width:64px;font-size:12px;padding:8px 8px;border:1.5px solid rgba(200,195,240,.7);border-radius:var(--r-sm);background:rgba(255,255,255,.7);color:var(--text-primary);outline:none;text-align:center;font-family:var(--font);}
+.settings-note{width:100%;font-size:12px;padding:8px 12px;border:1.5px solid rgba(200,195,240,.7);border-radius:var(--r-pill);background:rgba(255,255,255,.7);color:var(--text-primary);outline:none;font-family:var(--font);}
+.add-habit-form{padding:12px 14px;border-top:1px solid rgba(139,92,246,.06);display:flex;flex-direction:column;gap:8px;}
+.add-habit-btn{padding:10px;background:linear-gradient(135deg,var(--purple-600),var(--purple-700));color:#fff;border:none;border-radius:var(--r-pill);font-size:13px;font-weight:700;cursor:pointer;width:100%;font-family:var(--font);}
 </style>
 </head>
 <body>
@@ -1225,8 +1527,12 @@ input[type="number"],input[type="text"],input[type="time"],select{font-size:max(
 </div>
 
 <div class="jnk-selected-row">
-<div style="font-size:13px;font-weight:900;color:#1e1b4b;white-space:nowrap;">2. Selected <span style="font-size:11px;font-weight:600;color:#9c87d4;" id="jnk-sel-count">(0 items)</span></div>
-<div class="jnk-chips-area" id="jnk-chips-area"><span class="jnk-empty-chips" id="jnk-empty-chips">Nothing selected yet — tap a category above</span></div>
+<div style="font-size:13px;font-weight:900;color:#1e1b4b;white-space:nowrap;">
+2. Selected <span style="font-size:11px;font-weight:600;color:#9c87d4;" id="jnk-sel-count">(0 items)</span>
+</div>
+<div class="jnk-chips-area" id="jnk-chips-area">
+<span class="jnk-empty-chips" id="jnk-empty-chips">Nothing selected yet — tap a category above</span>
+</div>
 <button class="jnk-log-btn" id="jnk-log-btn" onclick="jnkLogItems()" disabled>➕ Log 0 Junk Items</button>
 </div>
 
@@ -1319,7 +1625,6 @@ input[type="number"],input[type="text"],input[type="time"],select{font-size:max(
 <div style="font-size:11px;color:#b45309;">Max 2/month · Enjoy every bite! Tap to confirm.</div>
 </div>
 <div style="margin-left:auto;">
-<!-- Issue 5: replaced single b-dot with two slot circles -->
 <div class="b-slots-row" id="j-b-slots">
 <div class="b-slot" id="b-slot-1"></div>
 <div class="b-slot" id="b-slot-2"></div>
@@ -1378,7 +1683,7 @@ input[type="number"],input[type="text"],input[type="time"],select{font-size:max(
 </div>
 </div>
 
-<!-- Issue 4: Biryani custom confirm modal -->
+<!-- Biryani Confirm Modal -->
 <div class="edit-modal" id="biryani-confirm-modal">
 <div class="edit-box" style="text-align:center;max-width:340px;">
 <div style="font-size:40px;margin-bottom:10px;">🍛</div>
@@ -1674,7 +1979,7 @@ let realtimeUnsub = null;
 let isLocalUpdate = false;
 
 // ═══════════════════════════════════════
-// GLOBAL SCOPE — water animation vars
+// GLOBAL SCOPE
 // ═══════════════════════════════════════
 let wtDone = false;
 let wtPropAng = 0;
@@ -1684,7 +1989,7 @@ let wtSceneInitialized = false;
 let jnkGridBuilt = false;
 
 // ═══════════════════════════════════════
-// firedToday — persistent across reloads
+// firedToday
 // ═══════════════════════════════════════
 let firedToday = {};
 function loadFiredToday() {
@@ -2136,9 +2441,6 @@ toastEl.style.pointerEvents = '';
 
 let refreshDebounceTimer = null;
 
-// ═══════════════════════════════════════
-// refreshUI
-// ═══════════════════════════════════════
 function refreshUI() {
 if (refreshDebounceTimer) clearTimeout(refreshDebounceTimer);
 refreshDebounceTimer = setTimeout(() => {
@@ -3981,26 +4283,26 @@ state.engReadDone = false; state.engSpeakDone = false; state.engLearnDone = fals
 }
 
 function renderLangUI() {
-setLangBar('hi-read-bar', 'hi-read-pct', state.hiReadDone ?100:0, 'var(--purple-500)');
-setLangBar('hi-speak-bar', 'hi-speak-pct', state.hiSpeakDone ?100:0, 'var(--purple-500)');
-setLangBar('hi-learn-bar', 'hi-learn-pct', state.hiLearnDone ?100:0, 'var(--purple-500)');
+setLangBar('hi-read-bar','hi-read-pct', state.hiReadDone?100:0,'var(--purple-500)');
+setLangBar('hi-speak-bar','hi-speak-pct', state.hiSpeakDone?100:0,'var(--purple-500)');
+setLangBar('hi-learn-bar','hi-learn-pct', state.hiLearnDone?100:0,'var(--purple-500)');
 const hiDone = [state.hiReadDone,state.hiSpeakDone,state.hiLearnDone].filter(Boolean).length;
 setLangBar('hi-overall-bar','hi-overall-pct',Math.round(hiDone/3*100),'linear-gradient(90deg,var(--purple-500),var(--purple-400))');
-setLangText('hi-read-streak', state.hiReadStreak ||0);
-setLangText('hi-speak-streak', state.hiSpeakStreak ||0);
-setLangText('hi-learn-streak', state.hiLearnStreak ||0);
+setLangText('hi-read-streak', state.hiReadStreak||0);
+setLangText('hi-speak-streak', state.hiSpeakStreak||0);
+setLangText('hi-learn-streak', state.hiLearnStreak||0);
 setLangDoneBtn('hi-read-btn', state.hiReadDone, '✓ Read today', '✅ Read done');
 setLangDoneBtn('hi-speak-btn', state.hiSpeakDone, '✓ Spoke today', '✅ Spoke done');
 setLangDoneBtn('hi-learn-btn', state.hiLearnDone, '✓ Learned today', '✅ Learned done');
-setLangBar('eng-read-bar', 'eng-read-pct', state.engReadDone ?100:0, 'var(--green-500)');
-setLangBar('eng-speak-bar', 'eng-speak-pct', state.engSpeakDone ?100:0, 'var(--green-500)');
-setLangBar('eng-learn-bar', 'eng-learn-pct', state.engLearnDone ?100:0, 'var(--green-500)');
+setLangBar('eng-read-bar','eng-read-pct', state.engReadDone?100:0,'var(--green-500)');
+setLangBar('eng-speak-bar','eng-speak-pct', state.engSpeakDone?100:0,'var(--green-500)');
+setLangBar('eng-learn-bar','eng-learn-pct', state.engLearnDone?100:0,'var(--green-500)');
 const engDone = [state.engReadDone,state.engSpeakDone,state.engLearnDone].filter(Boolean).length;
 setLangBar('eng-overall-bar','eng-overall-pct',Math.round(engDone/3*100),'linear-gradient(90deg,var(--green-500),var(--green-400))');
-setLangText('eng-reading-streak-badge', state.engStreak ||0);
-setLangText('eng-days-done', state.engStreak ||0);
-setLangText('eng-speak-streak', state.engSpeakStreak ||0);
-setLangText('eng-learn-streak', state.engLearnStreak ||0);
+setLangText('eng-reading-streak-badge', state.engStreak||0);
+setLangText('eng-days-done', state.engStreak||0);
+setLangText('eng-speak-streak', state.engSpeakStreak||0);
+setLangText('eng-learn-streak', state.engLearnStreak||0);
 setLangDoneBtn('eng-read-btn', state.engReadDone, '✓ Read today', '✅ Read done');
 setLangDoneBtn('eng-speak-btn', state.engSpeakDone, '✓ Spoke today', '✅ Spoke done');
 setLangDoneBtn('eng-learn-btn', state.engLearnDone, '✓ Learned today', '✅ Learned done');
@@ -4073,6 +4375,8 @@ if (state.jnkViewMonth>11) { state.jnkViewMonth=0; state.jnkViewYear++; }
 jnkRenderAll();
 }
 
+// ── Junk Food selector — Fix 1
+// jnkBuildCatGrid: reliable selection state, instant chip sync
 function jnkBuildCatGrid() {
 const grid = document.getElementById('jnk-cat-grid');
 if (!grid) return;
@@ -4088,8 +4392,10 @@ card.className = 'jnk-cat-card'+(isSel?' selected':'');
 card.dataset.id = cat.id;
 card.innerHTML =
 '<div class="jnk-cat-emoji">'+cat.emoji+'</div>' +
-'<div class="jnk-cat-body"><div class="jnk-cat-name">'+cat.name+'</div>' +
-'<div class="jnk-cat-sub">'+cat.sub+'</div></div>' +
+'<div class="jnk-cat-body">' +
+'<div class="jnk-cat-name">'+cat.name+'</div>' +
+'<div class="jnk-cat-sub">'+cat.sub+'</div>' +
+'</div>' +
 '<div class="jnk-cat-toggle">'+(isSel?'✓':'+')+'</div>';
 card.onclick = () => jnkToggleCat(cat.id);
 grid.appendChild(card);
@@ -4097,10 +4403,25 @@ grid.appendChild(card);
 jnkGridBuilt = true;
 }
 
+// jnkToggleCat: immediate DOM update without full grid rebuild on mobile
 function jnkToggleCat(id) {
-if (jnkSelected.includes(id)) { jnkSelected=jnkSelected.filter(x=>x!==id); }
-else { jnkSelected.push(id); }
-jnkBuildCatGrid(); jnkRenderChips();
+if (jnkSelected.includes(id)) {
+jnkSelected = jnkSelected.filter(x=>x!==id);
+} else {
+jnkSelected.push(id);
+}
+// Update only the tapped card's visual state directly
+const grid = document.getElementById('jnk-cat-grid');
+if (grid) {
+grid.querySelectorAll('.jnk-cat-card').forEach(card => {
+const cid = card.dataset.id;
+const sel = jnkSelected.includes(cid);
+card.classList.toggle('selected', sel);
+const toggle = card.querySelector('.jnk-cat-toggle');
+if (toggle) toggle.textContent = sel ? '✓' : '+';
+});
+}
+jnkRenderChips();
 }
 
 function jnkRenderChips() {
@@ -4123,13 +4444,24 @@ jnkSelected.forEach(id=>{
 const cat=JNK_CATEGORIES.find(c=>c.id===id); if (!cat) return;
 const chip=document.createElement('div'); chip.className='jnk-chip';
 chip.innerHTML=cat.emoji+' '+cat.name+'<button class="jnk-chip-remove" onclick="jnkRemoveChip(\''+id+'\')">×</button>';
-area.insertBefore(chip,null);
+area.insertBefore(chip, null);
 });
 }
 
 function jnkRemoveChip(id) {
 jnkSelected=jnkSelected.filter(x=>x!==id);
-jnkBuildCatGrid(); jnkRenderChips();
+// Update card visual state directly
+const grid = document.getElementById('jnk-cat-grid');
+if (grid) {
+grid.querySelectorAll('.jnk-cat-card').forEach(card => {
+const cid = card.dataset.id;
+const sel = jnkSelected.includes(cid);
+card.classList.toggle('selected', sel);
+const toggle = card.querySelector('.jnk-cat-toggle');
+if (toggle) toggle.textContent = sel ? '✓' : '+';
+});
+}
+jnkRenderChips();
 }
 
 function jnkLogItems() {
@@ -4146,13 +4478,24 @@ const timeStr=now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
 const names=jnkSelected.map(id=>{const cat=JNK_CATEGORIES.find(c=>c.id===id);return cat?cat.name:id;});
 if (!state.junkLog) state.junkLog=[];
 state.junkLog.push({
-id:genId(), categories:[...jnkSelected], names, emojis:jnkSelected.map(id=>{const cat=JNK_CATEGORIES.find(c=>c.id===id);return cat?cat.emoji:'🍔';}),
+id:genId(), categories:[...jnkSelected], names,
+emojis:jnkSelected.map(id=>{const cat=JNK_CATEGORIES.find(c=>c.id===id);return cat?cat.emoji:'🍔';}),
 date:now.toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short',year:'numeric'}),
 dateKey:jnkTodayKey(), timeStr, monthKey:curMk,
 isDessert:jnkSelected.some(id=>DESSERT_IDS.includes(id)),
 isDrink: jnkSelected.some(id=>DRINK_IDS.includes(id))
 });
-jnkSelected=[]; jnkBuildCatGrid(); jnkRenderChips();
+jnkSelected=[];
+// Reset all card visual states directly
+const grid = document.getElementById('jnk-cat-grid');
+if (grid) {
+grid.querySelectorAll('.jnk-cat-card').forEach(card => {
+card.classList.remove('selected');
+const toggle = card.querySelector('.jnk-cat-toggle');
+if (toggle) toggle.textContent = '+';
+});
+}
+jnkRenderChips();
 save(); updateStatsBanner(); jnkRenderAll();
 const newCount=(state.junkLog||[]).filter(e=>e.monthKey===curMk).length;
 showToast(newCount>=JNK_LIMIT?'🚫 Monthly limit hit!':'🍩 Logged! Stay aware.', newCount>=JNK_LIMIT?'rt':'gt');
@@ -4372,7 +4715,6 @@ function jBKey(){return jnkMKey(state.jBViewM,state.jBViewY);}
 function jBCurrentKey(){const n=new Date();return jnkMKey(n.getMonth(),n.getFullYear());}
 function jBCount(mk){const e=(state.biryLog||[]).find(x=>x.monthKey===mk);return e?(e.count||0):0;}
 
-// ── Issue 4: openBiryaniConfirm, closeBiryaniConfirm, confirmBiryaniLog ──
 function openBiryaniConfirm() {
 const curMk = jBCurrentKey();
 const cnt = jBCount(curMk);
@@ -4411,7 +4753,6 @@ entry.count >= J_BIRY_LIMIT ? 'yt' : 'gt'
 );
 }
 
-// ── Issue 4: Updated jLogBiryani — calls openBiryaniConfirm instead of confirm() ──
 function jLogBiryani() {
 const curMk = jBCurrentKey();
 const cnt = jBCount(curMk);
@@ -4449,7 +4790,6 @@ if(bm)bm.textContent=JNK_MONTHS[state.jBViewM]+' '+state.jBViewY;
 if(bc)bc.textContent=cnt;if(be)be.textContent=cnt;
 if(br)br.textContent=rem>0?rem+' remaining 🍛':'🚫 Limit reached';
 if(bb){bb.style.width=Math.min(100,(cnt/J_BIRY_LIMIT)*100)+'%';bb.style.background=cnt>=J_BIRY_LIMIT?'#ef4444':'#f59e0b';}
-// ── Issue 5: slot circles replacing single b-dot ──
 const slot1 = document.getElementById('b-slot-1');
 const slot2 = document.getElementById('b-slot-2');
 if (slot1 && slot2) {
@@ -4680,6 +5020,8 @@ if (wpe) wpe.textContent = total-done;
 if (wc) wc.textContent = done+'/'+total+' done';
 }
 
+// ── Weekly tasks — Fix 3
+// wtRenderTasks: uses .habit-actions wrapper for cleaner row layout
 function wtRenderTasks() {
 const container = document.getElementById('weekly-task-list'); if (!container) return;
 const sub = document.getElementById('weekly-hero-sub');
@@ -4706,12 +5048,15 @@ row.className = 'weekly-task-item'+(t.done?' wt-done':'');
 row.innerHTML =
 '<div class="weekly-cb'+(t.done?' checked':'')+'" onclick="wtToggleTask(\''+t.id+'\')"></div>'+
 '<div class="weekly-task-icon" style="background:'+dc.bg+';border-color:'+dc.color+'40;">'+emoji+'</div>'+
-'<div class="weekly-task-body"><div class="weekly-task-name">'+t.name+'</div>'+
+'<div class="weekly-task-body">'+
+'<div class="weekly-task-name">'+t.name+'</div>'+
 (t.note?'<div class="weekly-task-note">'+t.note+'</div>':'')+
 '</div>'+
+'<div class="weekly-task-actions">'+
 '<span class="weekly-day-badge" style="background:'+dc.bg+';color:'+dc.color+';">'+t.day+'</span>'+
 '<button class="weekly-edit-btn" onclick="wtOpenEdit(\''+t.id+'\')">Edit</button>'+
-'<button class="weekly-del-btn" onclick="wtDeleteTask(\''+t.id+'\')">🗑</button>';
+'<button class="weekly-del-btn" onclick="wtDeleteTask(\''+t.id+'\')">🗑</button>'+
+'</div>';
 container.appendChild(row);
 });
 }
@@ -4728,18 +5073,22 @@ const txt = document.getElementById('notif-status-text');
 const btn = document.getElementById('notif-enable-btn');
 if (!dot||!txt||!btn) return;
 if (!('Notification' in window)) {
-dot.className='notif-status-dot denied'; txt.textContent='Not supported on this device.';
+dot.className='notif-status-dot denied';
+txt.textContent='Not supported on this device.';
 btn.style.display='none'; return;
 }
 const p = Notification.permission;
 if (p==='granted') {
-dot.className='notif-status-dot granted'; txt.textContent='✅ Notifications enabled!';
+dot.className='notif-status-dot granted';
+txt.textContent='✅ Notifications enabled!';
 btn.style.display='none';
 } else if (p==='denied') {
-dot.className='notif-status-dot denied'; txt.textContent='❌ Blocked — check browser settings.';
+dot.className='notif-status-dot denied';
+txt.textContent='❌ Blocked — check browser settings.';
 btn.style.display='block';
 } else {
-dot.className='notif-status-dot'; txt.textContent='Tap Enable to receive reminders.';
+dot.className='notif-status-dot';
+txt.textContent='Tap Enable to receive reminders.';
 btn.style.display='block';
 }
 }
@@ -4800,7 +5149,8 @@ const active = (state.reminders||[]).filter(r=>r.enabled&&r.days.includes(today)
 if (count) count.textContent = active.length;
 list.innerHTML = '';
 if (!active.length) {
-list.innerHTML = '<div class="home-rem-empty">No reminders today.</div>'; return;
+list.innerHTML = '<div class="home-rem-empty">No reminders today.</div>';
+return;
 }
 active.slice().sort((a,b)=>a.time.localeCompare(b.time)).forEach(r=>{
 const parts = r.time.split(':').map(Number);
@@ -4813,7 +5163,8 @@ if (diff<0) { sc='done'; st='Done'; }
 else if (diff===0) { st='Now!'; }
 else if (diff<=60) { st='In '+diff+'m'; }
 else { st=timeStr; }
-const row = document.createElement('div'); row.className='home-rem-item';
+const row = document.createElement('div');
+row.className='home-rem-item';
 row.innerHTML =
 '<div class="home-rem-icon">'+r.icon+'</div>'+
 '<div class="home-rem-body">'+
@@ -4836,7 +5187,10 @@ names.forEach((d,i)=>{
 const btn = document.createElement('button');
 btn.className = 'day-btn'+(selDays.includes(i)?' sel':'');
 btn.textContent = d; btn.type='button';
-btn.onclick = ()=>{ selDays=selDays.includes(i)?selDays.filter(x=>x!==i):[...selDays,i]; buildDaysPicker(); };
+btn.onclick = ()=>{
+selDays=selDays.includes(i)?selDays.filter(x=>x!==i):[...selDays,i];
+buildDaysPicker();
+};
 w.appendChild(btn);
 });
 }
@@ -4845,7 +5199,8 @@ function buildPresetChips() {
 const w = document.getElementById('preset-chips'); if (!w) return;
 w.innerHTML = '';
 REMINDER_PRESETS.forEach(p=>{
-const c = document.createElement('div'); c.className='preset-chip';
+const c = document.createElement('div');
+c.className='preset-chip';
 c.textContent = p.icon+' '+p.title;
 c.onclick = ()=>{
 const rt = document.getElementById('r-title');
@@ -4856,7 +5211,9 @@ if (rt) rt.value = p.title;
 if (rm) rm.value = p.msg;
 if (rtime) rtime.value = p.time;
 if (ri) ri.value = p.icon;
-selDays = p.days.slice(); buildDaysPicker(); showToast('✅ Preset loaded');
+selDays = p.days.slice();
+buildDaysPicker();
+showToast('✅ Preset loaded');
 };
 w.appendChild(c);
 });
@@ -4869,8 +5226,10 @@ const rems = state.reminders||[];
 const tag = document.getElementById('r-count-tag');
 if (tag) tag.textContent = rems.filter(r=>r.enabled).length+' active';
 if (!rems.length) {
-const e = document.createElement('div'); e.className='tempty';
-e.textContent='No reminders yet.'; list.appendChild(e); return;
+const e = document.createElement('div');
+e.className='tempty';
+e.textContent='No reminders yet.';
+list.appendChild(e); return;
 }
 rems.forEach((r,i)=>{
 const allD = r.days.length===7;
@@ -4878,7 +5237,8 @@ const isWD = [1,2,3,4,5].every(d=>r.days.includes(d))&&r.days.length===5;
 const dL = allD?'Every day':isWD?'Weekdays':r.days.slice().sort((a,b)=>a-b).map(d=>DAY_NAMES[d]).join(', ');
 const hh = +r.time.split(':')[0]; const mm = r.time.split(':')[1];
 const tL = ((hh%12)||12)+':'+mm+' '+(hh<12?'AM':'PM');
-const row = document.createElement('div'); row.className='reminder-item';
+const row = document.createElement('div');
+row.className='reminder-item';
 row.innerHTML =
 '<div class="reminder-icon-box">'+r.icon+'</div>'+
 '<div class="reminder-body">'+
@@ -4903,7 +5263,8 @@ showToast(v?'🔔 Enabled':'🔕 Paused');
 function deleteReminder(i) {
 if (!confirm('Delete this reminder?')) return;
 state.reminders.splice(i,1);
-save(); renderReminderList(); renderHomeReminders(); showToast('🗑 Deleted');
+save(); renderReminderList(); renderHomeReminders();
+showToast('🗑 Deleted');
 }
 
 function addReminder() {
@@ -4930,12 +5291,16 @@ save(); renderReminderList(); renderHomeReminders();
 if (title) title.value = '';
 if (msg) msg.value = '';
 if (time) time.value = '08:00';
-selDays = [0,1,2,3,4,5,6]; buildDaysPicker();
+selDays = [0,1,2,3,4,5,6];
+buildDaysPicker();
 showToast('✅ Reminder set for '+timeVal+'!','gt');
 }
 
 // ═══════════════════════════════════════
 // SETTINGS PAGE
+// Fix 2 — buildSettingsHabitList uses
+// .habit-actions wrapper so text block
+// always gets priority width
 // ═══════════════════════════════════════
 let editingHabitId = null;
 let settingsFilter = 'all';
@@ -5012,8 +5377,10 @@ const filtered = (state.habits||[])
 .filter(h=>settingsFilter==='all'||h.section===settingsFilter)
 .sort((a,b)=>(a.order||0)-(b.order||0));
 if (!filtered.length) {
-const e = document.createElement('div'); e.className='tempty';
-e.textContent='No habits here yet.'; w.appendChild(e); return;
+const e = document.createElement('div');
+e.className='tempty';
+e.textContent='No habits here yet.';
+w.appendChild(e); return;
 }
 const grouped = {};
 filtered.forEach(h=>{ if(!grouped[h.section])grouped[h.section]=[]; grouped[h.section].push(h); });
@@ -5034,7 +5401,8 @@ w.appendChild(headerDiv);
 const list = document.createElement('div');
 list.style.borderTop = '1px solid rgba(139,92,246,.06)';
 grouped[secId].forEach(h=>{
-const row = document.createElement('div'); row.className='habit-item';
+const row = document.createElement('div');
+row.className = 'habit-item';
 const iconContent = getHabitIconHtml(h);
 row.innerHTML =
 '<div class="habit-icon-wrap" onclick="openIconPicker(\''+h.id+'\')" title="Change icon">'+
@@ -5046,10 +5414,12 @@ iconContent+
 (h.note?'<div class="habit-meta">'+h.note+'</div>':'')+
 '</div>'+
 '<span class="habit-pts-badge">+'+h.pts+'pts</span>'+
-'<button class="habit-edit-btn" onclick="event.stopPropagation();moveHabitUp(\''+h.id+'\')" style="padding:3px 8px;font-size:10px;">▲</button>'+
-'<button class="habit-edit-btn" onclick="event.stopPropagation();moveHabitDown(\''+h.id+'\')" style="padding:3px 8px;font-size:10px;">▼</button>'+
+'<div class="habit-actions">'+
+'<button class="habit-edit-btn" onclick="event.stopPropagation();moveHabitUp(\''+h.id+'\')" style="padding:3px 7px;font-size:10px;">▲</button>'+
+'<button class="habit-edit-btn" onclick="event.stopPropagation();moveHabitDown(\''+h.id+'\')" style="padding:3px 7px;font-size:10px;">▼</button>'+
 '<button class="habit-edit-btn" onclick="openEditModal(\''+h.id+'\')">Edit</button>'+
-'<button class="habit-del-btn" onclick="deleteHabit(\''+h.id+'\')">×</button>';
+'<button class="habit-del-btn" onclick="deleteHabit(\''+h.id+'\')">×</button>'+
+'</div>';
 list.appendChild(row);
 });
 w.appendChild(list);
@@ -5061,7 +5431,8 @@ const w = document.getElementById('settings-sections-list'); if (!w) return;
 w.innerHTML = '';
 (state.sections||[]).forEach(sec=>{
 const hc = (state.habits||[]).filter(h=>h.section===sec.id).length;
-const row = document.createElement('div'); row.className='habit-item';
+const row = document.createElement('div');
+row.className='habit-item';
 row.innerHTML =
 '<span class="si">'+getSectionEmoji(sec.id,sec.icon)+'</span>'+
 '<div class="habit-info">'+
@@ -5164,7 +5535,8 @@ const iconVal = icon ? icon.value.trim()||'📌' : '📌';
 if (!state.sections) state.sections=[];
 state.sections.push({id:genId(), icon:iconVal, name:nameVal, tag:''});
 save(); rebuildTodaySections(); buildSettingsPage();
-if (name) name.value=''; if (icon) icon.value='';
+if (name) name.value='';
+if (icon) icon.value='';
 showToast('✅ Section added!','gt');
 }
 
@@ -5172,7 +5544,10 @@ function deleteSection(id) {
 const habits = (state.habits||[]).filter(h=>h.section===id);
 if (habits.length && !confirm('Delete section and its '+habits.length+' habit(s)?')) return;
 state.sections = (state.sections||[]).filter(s=>s.id!==id);
-habits.forEach(h=>{ state.habits=state.habits.filter(x=>x.id!==h.id); delete state.checks[h.id]; });
+habits.forEach(h=>{
+state.habits=state.habits.filter(x=>x.id!==h.id);
+delete state.checks[h.id];
+});
 save(); rebuildTodaySections(); applyChecks(); updateProg(); buildSettingsPage();
 showToast('🗑 Deleted');
 }
@@ -5201,7 +5576,8 @@ btn.className = 'icon-emoji-btn';
 btn.textContent = e;
 btn.onclick = ()=>{
 document.querySelectorAll('.icon-emoji-btn').forEach(b=>b.classList.remove('sel'));
-btn.classList.add('sel'); selectedEmoji=e;
+btn.classList.add('sel');
+selectedEmoji=e;
 };
 grid.appendChild(btn);
 });
@@ -5216,8 +5592,11 @@ document.getElementById('icon-upload-panel').classList.toggle('active', mode==='
 }
 
 function openIconPicker(habitId) {
-iconPickerHabitId = habitId; selectedEmoji=null; uploadedImageData=null;
-buildIconEmojiGrid(); switchIconMode('emoji');
+iconPickerHabitId = habitId;
+selectedEmoji=null;
+uploadedImageData=null;
+buildIconEmojiGrid();
+switchIconMode('emoji');
 document.querySelectorAll('.icon-emoji-btn').forEach(b=>b.classList.remove('sel'));
 const preview = document.getElementById('icon-upload-preview');
 if (preview) preview.innerHTML='📤';
@@ -5243,7 +5622,8 @@ reader.readAsDataURL(file);
 
 function confirmIconPick() {
 if (!iconPickerHabitId) return;
-const habit = (state.habits||[]).find(h=>h.id===iconPickerHabitId); if (!habit) return;
+const habit = (state.habits||[]).find(h=>h.id===iconPickerHabitId);
+if (!habit) return;
 if (iconPickerMode==='emoji' && selectedEmoji) {
 habit.customIcon = selectedEmoji;
 habit.customIconType = 'emoji';
@@ -5281,18 +5661,21 @@ const banner = document.createElement('div');
 banner.id = 'pwa-install-banner';
 banner.className = 'pwa-install-banner';
 banner.innerHTML =
-'<span>📲</span>' +
-'<span>Install for real notifications!</span>' +
-'<button class="pwa-install-btn" onclick="installPWA()">Install ✓</button>' +
-'<button class="pwa-install-close" ' +
-'onclick="document.getElementById(\'pwa-install-banner\').remove()">×</button>';
+'<span>📲</span>'+
+'<span>Install for real notifications!</span>'+
+'<button class="pwa-install-btn" onclick="installPWA()">Install ✓</button>'+
+'<button class="pwa-install-close" onclick="document.getElementById(\'pwa-install-banner\').remove()">×</button>';
 document.body.appendChild(banner);
-setTimeout(()=>{ const b=document.getElementById('pwa-install-banner'); if(b) b.remove(); },10000);
+setTimeout(()=>{
+const b=document.getElementById('pwa-install-banner');
+if(b) b.remove();
+},10000);
 }
 
 async function installPWA() {
 if (!deferredInstallPrompt) {
-showToast('📲 Tap Chrome menu → Add to Home Screen','gt'); return;
+showToast('📲 Tap Chrome menu → Add to Home Screen','gt');
+return;
 }
 deferredInstallPrompt.prompt();
 const result = await deferredInstallPrompt.userChoice;
