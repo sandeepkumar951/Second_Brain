@@ -2425,7 +2425,6 @@ const THEMES = {
 function getTheme() {
   const h = new Date().getHours();
   if (h >= 5  && h < 11) return THEMES.sunrise;
-  if (h >= 18 || h < 5)  return THEMES.night;
   return THEMES.afternoon;
 }
 
