@@ -317,7 +317,7 @@ flex:0 0 auto;
 .home-rem-status.done{background:var(--green-50);color:var(--green-600);border:1px solid rgba(22,163,74,0.15);}
 .home-rem-status.passed{background:#f3f4f6;color:#6b7280;border:1px solid #e5e7eb;}
 .home-rem-empty{padding:20px;font-size:13px;color:var(--text-muted);text-align:center;}
-.sc{background:var(--surface-elevated);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-radius:var(--r-xl);border:1px solid rgba(139,92,246,0.05);margin-bottom:16px;overflow:hidden;box-shadow:var(--shadow-card);transition:all var(--t-base);transform:translateZ(0);}
+.sc{background:var(--surface-elevated);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-radius:var(--r-xl);border:1px solid rgba(139,92,246,0.05);margin-bottom:20px;overflow:hidden;box-shadow:var(--shadow-card);transition:all var(--t-base);transform:translateZ(0);}
 .sc:hover{box-shadow:var(--shadow-card-hover);}
 @media(min-width:1024px){.sc{border-radius:var(--r-2xl);}}
 .sh{padding:16px 20px 14px;border-bottom:1px solid rgba(139,92,246,0.05);display:flex;align-items:center;gap:10px;background:linear-gradient(90deg,rgba(139,92,246,0.02),transparent);}
@@ -604,7 +604,7 @@ body.theme-night .wt-panel{background:rgba(26,22,64,0.88);}
 body.theme-night .weekly-tasks-card{background:rgba(26,22,64,0.88);}
 body.theme-night .weekly-task-name{color:#e0e7ff;}
 @media(max-width:380px){.theme-name{font-size:26px;}.theme-sub{font-size:11px;}.stats-banner-value{font-size:17px;}.summary-cards-row{gap:8px;}.streak-number,.tasks-card-number{font-size:36px;}}
-@media(min-width:1024px){body{padding-bottom:48px;}#today-sections{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;}#today-sections>.sc-water-full-width{grid-column:1/-1;}}
+@media(min-width:1024px){body{padding-bottom:48px;}#today-sections{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;}#today-sections>.sc-water-full-width{grid-column:1/-1;}}
 .pwa-install-banner{position:fixed;bottom:calc(40px + var(--safe-bottom));left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#7c3aed,#4f46e5);color:white;padding:12px 20px;border-radius:99px;font-size:13px;font-weight:700;z-index:9999;display:flex;align-items:center;gap:10px;box-shadow:0 8px 32px rgba(124,58,237,0.4);white-space:nowrap;font-family:var(--font);}
 .pwa-install-btn{background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);color:white;border-radius:99px;padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font);}
 .pwa-install-close{background:none;border:none;color:rgba(255,255,255,0.7);font-size:18px;cursor:pointer;line-height:1;}
@@ -960,6 +960,7 @@ let ctPageBuilt         = false;
 let ctActiveTag         = 'All';
 let wtEditingId         = null;
 let wtFilter            = 'all';
+let wtSelectedDays      = ['Mon'];
 let jActiveLog          = 'sugar';
 let editingHabitId      = null;
 let settingsFilter      = 'all';
@@ -6573,7 +6574,39 @@ function _setLangDoneBtn(id, done, labelOff, labelOn) {
 .weekly-cb.checked{background:var(--green-500);border-color:var(--green-500);}
 .weekly-cb.checked::after{opacity:1;}
 .weekly-empty{padding:32px;text-align:center;color:var(--text-muted);font-size:13px;}
+.wt-day-picker{
+  display:flex;gap:6px;flex-wrap:wrap;align-items:center;
+}
+.wt-day-pill{
+  padding:6px 14px;border-radius:999px;font-size:12px;
+  font-weight:700;cursor:pointer;
+  border:1.5px solid rgba(200,195,240,.7);
+  background:#fff;color:var(--text-muted);
+  transition:all .18s;font-family:var(--font);
+  min-height:34px;
+}
+.wt-day-pill.sel{
+  background:var(--purple-600);
+  border-color:var(--purple-600);
+  color:#fff;
+}
+.wt-day-presets{
+  display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;
+}
+.wt-preset-chip{
+  padding:5px 12px;border-radius:999px;font-size:11px;
+  font-weight:600;cursor:pointer;
+  border:1px solid rgba(200,195,240,.6);
+  background:rgba(255,255,255,.6);color:var(--text-muted);
+  transition:all .2s;font-family:var(--font);
+}
+.wt-preset-chip:hover{
+  background:var(--purple-100);
+  border-color:var(--purple-200);
+  color:var(--purple-600);
+}
 `;
+
   document.head.appendChild(s);
 })();
 
@@ -6607,13 +6640,23 @@ function _setLangDoneBtn(id, done, labelOff, labelOn) {
       <input class="weekly-add-note" id="wt-task-note"
         placeholder="Sub-note (optional)" maxlength="60"
         aria-label="Task sub-note"/>
-      <select class="weekly-day-select" id="wt-task-day" aria-label="Task day">
-        <option value="Mon">Mon</option><option value="Tue">Tue</option>
-        <option value="Wed">Wed</option><option value="Thu">Thu</option>
-        <option value="Fri">Fri</option><option value="Sat">Sat</option>
-        <option value="Sun">Sun</option><option value="Today">Today</option>
-        <option value="Tomorrow">Tomorrow</option><option value="Anytime">Anytime</option>
-      </select>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+  <div class="wt-day-picker" id="wt-day-picker" role="group" aria-label="Select days">
+    <button type="button" class="wt-day-pill sel" data-day="Mon">Mon</button>
+    <button type="button" class="wt-day-pill" data-day="Tue">Tue</button>
+    <button type="button" class="wt-day-pill" data-day="Wed">Wed</button>
+    <button type="button" class="wt-day-pill" data-day="Thu">Thu</button>
+    <button type="button" class="wt-day-pill" data-day="Fri">Fri</button>
+    <button type="button" class="wt-day-pill" data-day="Sat">Sat</button>
+    <button type="button" class="wt-day-pill" data-day="Sun">Sun</button>
+  </div>
+  <div class="wt-day-presets">
+    <button type="button" class="wt-preset-chip" onclick="wtSetDayPreset('everyday')">Everyday</button>
+    <button type="button" class="wt-preset-chip" onclick="wtSetDayPreset('weekdays')">Weekdays (Mon–Fri)</button>
+    <button type="button" class="wt-preset-chip" onclick="wtSetDayPreset('weekends')">Weekends (Sat–Sun)</button>
+    <button type="button" class="wt-preset-chip" onclick="wtSetDayPreset('clear')">Clear</button>
+  </div>
+</div>
       <button class="weekly-add-btn" onclick="wtAddTask()" aria-label="Add weekly task">+ Add</button>
     </div>
   </div>
@@ -6678,27 +6721,54 @@ function wtCheckWeekReset() {
   if (doneBefore>0) showToast('New week! '+doneBefore+' completed tasks reset.','gt');
   debouncedSave(500);
 }
+document.addEventListener('click', e => {
+  const pill = e.target.closest('.wt-day-pill');
+  if (!pill) return;
+  const day = pill.dataset.day;
+  if (wtSelectedDays.includes(day)) {
+    wtSelectedDays = wtSelectedDays.filter(d => d !== day);
+  } else {
+    wtSelectedDays.push(day);
+  }
+  document.querySelectorAll('.wt-day-pill').forEach(p => {
+    p.classList.toggle('sel', wtSelectedDays.includes(p.dataset.day));
+  });
+});
 
+function wtSetDayPreset(type) {
+  const map = {
+    everyday: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+    weekdays: ['Mon','Tue','Wed','Thu','Fri'],
+    weekends: ['Sat','Sun'],
+    clear:    []
+  };
+  wtSelectedDays = map[type] || [];
+  document.querySelectorAll('.wt-day-pill').forEach(p => {
+    p.classList.toggle('sel', wtSelectedDays.includes(p.dataset.day));
+  });
+}
 function getWeeklyDayColor(day) {
-  const map={
+  const map = {
     Mon:{bg:'#eff6ff',color:'#2563eb'}, Tue:{bg:'#f0fdf4',color:'#16a34a'},
     Wed:{bg:'#fffbeb',color:'#d97706'}, Thu:{bg:'#fdf4ff',color:'#9333ea'},
     Fri:{bg:'#fef2f2',color:'#dc2626'}, Sat:{bg:'#ecfdf5',color:'#059669'},
     Sun:{bg:'#fff1f2',color:'#e11d48'}, Today:{bg:'#e0f2fe',color:'#0284c7'},
     Tomorrow:{bg:'#f0fdf4',color:'#16a34a'}, Anytime:{bg:'#f5f3ff',color:'#7c3aed'}
   };
-  return map[day]||map['Anytime'];
+  // For multiple days, use the first day's color
+  const firstDay = (day||'').split(',')[0].trim();
+  return map[firstDay] || map['Anytime'];
 }
 
 function wtAddTask() {
   const inp      =document.getElementById('wt-task-input');
   const noteInp  =document.getElementById('wt-task-note');
-  const daySelect=document.getElementById('wt-task-day');
+  
   const name     =inp?inp.value.trim():'';
   if (!name) { showToast('Enter a task name'); return; }
   if (name.length>80) { showToast('Task name too long (max 80 characters)','yt'); return; }
   if (!state.weeklyTasks) state.weeklyTasks=[];
-  const rawDay=daySelect?daySelect.value:'Anytime';
+  const rawDay = wtSelectedDays.length > 0 ? wtSelectedDays.join(',') : 'Anytime';
   const day   =validateTaskDay(rawDay);
   state.weeklyTasks.push({
     id:genId(), name, note:noteInp?noteInp.value.trim():'',
@@ -6813,8 +6883,15 @@ function wtRenderTasks() {
   if      (wtFilter==='all')    filtered=tasks;
   else if (wtFilter==='active') filtered=tasks.filter(t=>!t.done);
   else if (wtFilter==='done')   filtered=tasks.filter(t=>t.done);
-  else if (wtFilter==='today')  filtered=tasks.filter(t=>t.day===todayName||t.day==='Today'||t.day==='Anytime');
-  else                          filtered=tasks.filter(t=>t.day===wtFilter);
+  else if (wtFilter==='today') filtered=tasks.filter(t=>{
+  if(!t.day) return false;
+  const days=t.day.split(',');
+  return days.includes(todayName)||days.includes('Today')||days.includes('Anytime');
+});
+  else filtered=tasks.filter(t=>{
+  if(!t.day) return false;
+  return t.day.split(',').includes(wtFilter);
+});
   wtUpdateStats();
   if (!filtered.length) {
     container.innerHTML='<div class="weekly-empty">'+(tasks.length===0?'No tasks yet. Add your first weekly task above!':'No tasks match this filter.')+'</div>';
@@ -6841,7 +6918,7 @@ function wtRenderTasks() {
       (safeNote?'<div class="weekly-task-note">'+safeNote+'</div>':'')+
       '</div>'+
       '<div class="weekly-task-actions">'+
-      '<span class="weekly-day-badge" style="background:'+dc.bg+';color:'+dc.color+';">'+sanitizeHTML(t.day||'')+'</span>'+
+      '<span class="weekly-day-badge" style="background:'+dc.bg+';color:'+dc.color+';">'+sanitizeHTML((t.day||'').split(',').join(' · '))+'</span>'+
       '<button class="weekly-edit-btn" data-action="wt-edit" data-id="'+t.id+'" aria-label="Edit task: '+safeName+'">Edit</button>'+
       '<button class="weekly-del-btn" data-action="wt-delete" data-id="'+t.id+'" aria-label="Delete task: '+safeName+'">x</button>'+
       '</div>';
@@ -8135,7 +8212,11 @@ function renderTodayWeeklyPanel() {
   const tasks    =state.weeklyTasks||[];
   const dayNames =['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const todayName=dayNames[new Date().getDay()];
-  const todayTasks=tasks.filter(t=>t.day===todayName||t.day==='Today'||t.day==='Anytime');
+  const todayTasks = tasks.filter(t => {
+  if (!t.day) return false;
+  const days = t.day.split(',');
+  return days.includes(todayName) || days.includes('Today') || days.includes('Anytime');
+});
   const relevant  =todayTasks.filter(t=>!t.done).concat(todayTasks.filter(t=>t.done)).slice(0,5);
   const total=tasks.length;
   const done =tasks.filter(t=>t.done).length;
@@ -8158,7 +8239,7 @@ function renderTodayWeeklyPanel() {
       (t.done?'<span style="color:#fff;font-size:8px;font-weight:900;">✓</span>':'')+
       '</div>'+
       '<span style="flex:1;font-size:12px;font-weight:600;'+(t.done?'text-decoration:line-through;color:var(--text-muted);':'color:var(--text-primary);')+'">'+safeName+'</span>'+
-      '<span style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:99px;background:'+dc.bg+';color:'+dc.color+';">'+sanitizeHTML(t.day||'')+'</span>';
+      '<span style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:99px;background:'+dc.bg+';color:'+dc.color+';">'+sanitizeHTML((t.day||'').split(',').join(' · '))+'</span>';
     list.appendChild(row);
   });
 }
@@ -8738,6 +8819,8 @@ window.saveWeeklyEdit         = saveWeeklyEdit;
 window.wtSetFilter            = wtSetFilter;
 window.wtClearDone            = wtClearDone;
 window.wtResetWeek            = wtResetWeek;
+window.wtSelectedDays         = wtSelectedDays;
+window.wtSetDayPreset         = wtSetDayPreset;
 window.wtCheckWeekReset       = wtCheckWeekReset;
 window.getWeeklyDayColor      = getWeeklyDayColor;
 window.checkReminders         = checkReminders;
