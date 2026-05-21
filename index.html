@@ -574,6 +574,7 @@ button:focus-visible,[role="button"]:focus-visible,[role="checkbox"]:focus-visib
   <button class="nb" onclick="showPage('study',this)">📊 Career</button>
   <button class="nb" onclick="showPage('english',this)">💬 English</button>
   <button class="nb" onclick="showPage('junk',this)">🍬 Junk + Sugar</button>
+  <button class="nb" onclick="showPage('notes',this)">📝 Notes</button>
   <button class="nb" onclick="showPage('weekly',this)">📅 Weekly</button>
   <button class="nb" onclick="showPage('reminders',this)">🔔 Reminders</button>
   <button class="nb" onclick="showPage('settings',this)">⚙️ Settings</button>
@@ -660,6 +661,7 @@ button:focus-visible,[role="button"]:focus-visible,[role="checkbox"]:focus-visib
 <div class="page" id="page-study" role="main" aria-label="Career tracker"></div>
 <div class="page" id="page-english" role="main" aria-label="Language progress"></div>
 <div class="page" id="page-junk" role="main" aria-label="Junk food tracker"></div>
+<div class="page" id="page-notes" role="main" aria-label="Notes"></div>
 <div class="page" id="page-weekly" role="main" aria-label="Weekly planner"></div>
 <div class="page" id="page-reminders" role="main" aria-label="Reminders"></div>
 <div class="page" id="page-settings" role="main" aria-label="Settings"></div>
@@ -2397,10 +2399,7 @@ const THEMES = {
 };
 
 function getTheme() {
-  const h = new Date().getHours();
-  if (h >= 5 && h < 11) return THEMES.sunrise;
-  if (h >= 11 && h < 18) return THEMES.afternoon;
-  return THEMES.night;
+    return THEMES.afternoon;  // always light
 }
 
 function applyTheme() {
@@ -6065,6 +6064,26 @@ function jAddSugar(name, icon, g) {
     ts:Date.now(), weekStart:state.sugarWeekStart,
     exceeded:false
   });
+
+const drinkNames = ['Soft Drink', 'Juice', 'Tea/Coffee'];
+    if (drinkNames.includes(name)) {
+        if (!state.junkLog) state.junkLog = [];
+        state.junkLog.push({
+            id: genId(),
+            categories: ['drinks'],
+            names: [name],
+            emojis: [icon],
+            qty: 1,
+            date: todayStr(),
+            dateKey: todayKey(),
+            timeStr: new Date().toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'}),
+            monthKey: currentMonthKey(),
+            isDessert: false,
+            isDrink: true   // ← this is what the ml card reads
+        });
+    }
+
+
   syncWeeklyGrams();
   const last=state.sugarLog[state.sugarLog.length-1];
   if (last) last.exceeded=state.weeklyGrams>J_SUGAR_LIMIT;
@@ -9446,5 +9465,1282 @@ document.addEventListener('DOMContentLoaded', () => {
 </noscript>
 
 </div><!-- /.app-wrapper -->
+<script>
+'use strict';
+
+/* ═══════════════════════════════════════════════════
+   NOTES CSS
+═══════════════════════════════════════════════════ */
+(function injectNotesCSS() {
+  if (document.getElementById('notes-css')) return;
+  const s = document.createElement('style');
+  s.id = 'notes-css';
+  s.textContent = `
+    .notes-root {
+      min-height:100vh;
+      background:linear-gradient(145deg,#f5f3ff 0%,#ede9fe 40%,#f0f4ff 100%);
+      padding:0 0 80px 0;
+      width:100%;
+      box-sizing:border-box;
+    }
+
+    /* ── Header ── */
+    .notes-header {
+      background:linear-gradient(135deg,#7C3AED 0%,#6d28d9 100%);
+      padding:20px 20px 18px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      flex-wrap:wrap;
+      gap:12px;
+    }
+    .notes-header-left {}
+    .notes-header-label {
+      font-size:10px;font-weight:700;
+      letter-spacing:3px;text-transform:uppercase;
+      color:rgba(255,255,255,0.65);margin-bottom:4px;
+    }
+    .notes-header-title {
+      font-size:26px;font-weight:900;
+      color:#fff;letter-spacing:-0.5px;
+    }
+    .notes-new-btn {
+      padding:12px 22px;
+      background:rgba(255,255,255,0.18);
+      border:1.5px solid rgba(255,255,255,0.35);
+      border-radius:999px;color:#fff;
+      font-size:13px;font-weight:700;
+      cursor:pointer;font-family:var(--font);
+      transition:all 0.2s;white-space:nowrap;
+    }
+    .notes-new-btn:hover {
+      background:rgba(255,255,255,0.28);
+    }
+
+    /* ── Stats Row ── */
+    .notes-stats-row {
+      display:grid;
+      grid-template-columns:repeat(5,1fr);
+      background:#fff;
+      border-bottom:1px solid #f0f0f5;
+      margin:0 16px 14px;
+      border-radius:0 0 16px 16px;
+      overflow:hidden;
+      box-shadow:0 4px 16px rgba(124,58,237,0.07);
+    }
+    .notes-stat-item {
+      padding:14px 8px;
+      text-align:center;
+      border-right:1px solid #f0f0f5;
+    }
+    .notes-stat-item:last-child { border-right:none; }
+    .notes-stat-num {
+      font-size:24px;font-weight:900;
+      line-height:1;margin-bottom:4px;
+    }
+    .notes-stat-lbl {
+      font-size:8px;font-weight:700;
+      letter-spacing:1.5px;text-transform:uppercase;
+      color:#9ca3af;
+    }
+
+    /* ── Section Tabs ── */
+    .notes-tabs-wrap {
+      margin:0 16px 10px;
+      background:#fff;
+      border-radius:14px;
+      padding:6px 8px;
+      display:flex;
+      align-items:center;
+      gap:4px;
+      overflow-x:auto;
+      scrollbar-width:none;
+      box-shadow:0 2px 10px rgba(124,58,237,0.06);
+      -webkit-overflow-scrolling:touch;
+    }
+    .notes-tabs-wrap::-webkit-scrollbar { display:none; }
+    .notes-tab {
+      padding:7px 14px;
+      border-radius:10px;
+      font-size:12px;font-weight:600;
+      cursor:pointer;
+      border:none;
+      background:transparent;
+      color:#9ca3af;
+      white-space:nowrap;
+      transition:all 0.18s;
+      font-family:var(--font);
+      flex-shrink:0;
+    }
+    .notes-tab.active {
+      background:#7C3AED;
+      color:#fff;
+      font-weight:700;
+    }
+    .notes-tab:hover:not(.active) {
+      background:#f5f3ff;
+      color:#7C3AED;
+    }
+
+    /* ── Search ── */
+    .notes-search-wrap {
+      margin:0 16px 14px;
+      position:relative;
+    }
+    .notes-search-input {
+      width:100%;
+      padding:11px 16px 11px 40px;
+      border:1.5px solid rgba(200,195,240,0.7);
+      border-radius:999px;
+      background:#fff;
+      font-size:14px;
+      color:#1e1b4b;
+      outline:none;
+      font-family:var(--font);
+      box-sizing:border-box;
+      transition:border-color 0.2s;
+    }
+    .notes-search-input:focus { border-color:#7C3AED; }
+    .notes-search-icon {
+      position:absolute;
+      left:14px;top:50%;
+      transform:translateY(-50%);
+      font-size:15px;
+      pointer-events:none;
+    }
+
+    /* ── Section Label ── */
+    .notes-section-label {
+      display:flex;
+      align-items:center;
+      gap:8px;
+      margin:10px 20px 8px;
+      font-size:10px;font-weight:700;
+      letter-spacing:2px;text-transform:uppercase;
+      color:#7C3AED;
+    }
+    .notes-section-label::after {
+      content:'';flex:1;
+      height:1px;background:#ddd6fe;
+    }
+
+    /* ── Cards Grid ── */
+    .notes-grid {
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:12px;
+      padding:0 16px;
+    }
+    @media(max-width:480px) {
+      .notes-grid { grid-template-columns:1fr; }
+    }
+
+    /* ── Note Card ── */
+    .note-card {
+      background:#fff;
+      border-radius:16px;
+      overflow:hidden;
+      position:relative;
+      box-shadow:0 2px 12px rgba(124,58,237,0.07);
+      transition:all 0.2s;
+      display:flex;
+      flex-direction:column;
+    }
+    .note-card:hover {
+      transform:translateY(-2px);
+      box-shadow:0 8px 24px rgba(124,58,237,0.13);
+    }
+    .note-card-top-bar {
+      height:4px;
+      width:100%;
+      flex-shrink:0;
+    }
+    .note-card-body {
+      padding:12px 14px 10px;
+      flex:1;
+      display:flex;
+      flex-direction:column;
+    }
+
+    /* ── Card Header Row ── */
+    .note-card-header {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:8px;
+      gap:6px;
+    }
+    .note-section-badge {
+      font-size:10px;font-weight:700;
+      padding:3px 10px;
+      border-radius:999px;
+      flex-shrink:0;
+    }
+    .note-card-actions-top {
+      display:flex;
+      align-items:center;
+      gap:6px;
+      margin-left:auto;
+      flex-shrink:0;
+    }
+    .note-fav-btn {
+      font-size:16px;cursor:pointer;
+      background:none;border:none;
+      padding:0;line-height:1;
+      transition:transform 0.2s;
+    }
+    .note-fav-btn:hover { transform:scale(1.2); }
+    .note-pin-badge {
+      display:inline-flex;align-items:center;gap:3px;
+      background:#fef9c3;border:1px solid #fde68a;
+      border-radius:999px;padding:3px 8px;
+      font-size:9px;font-weight:700;color:#d97706;
+      flex-shrink:0;
+    }
+
+    /* ── Card Image ── */
+    .note-card-image {
+      width:100%;
+      height:90px;
+      object-fit:cover;
+      border-radius:10px;
+      margin-bottom:10px;
+      display:block;
+      background:#f5f3ff;
+    }
+    .note-card-image-placeholder {
+      width:100%;height:90px;
+      border-radius:10px;
+      background:#f5f3ff;
+      display:flex;flex-direction:column;
+      align-items:center;justify-content:center;
+      margin-bottom:10px;
+      border:1px dashed #ddd6fe;
+    }
+    .note-card-image-placeholder span {
+      font-size:28px;margin-bottom:4px;
+    }
+    .note-card-image-placeholder small {
+      font-size:10px;color:#a78bfa;font-weight:500;
+    }
+
+    /* ── Card Content ── */
+    .note-card-title {
+      font-size:15px;font-weight:900;
+      color:#1e1b4b;margin-bottom:5px;
+      line-height:1.3;
+      display:-webkit-box;
+      -webkit-line-clamp:2;
+      -webkit-box-orient:vertical;
+      overflow:hidden;
+    }
+    .note-card-desc {
+      font-size:11px;color:#6b7280;
+      line-height:1.6;
+      display:-webkit-box;
+      -webkit-line-clamp:3;
+      -webkit-box-orient:vertical;
+      overflow:hidden;
+      margin-bottom:8px;
+      flex:1;
+    }
+
+    /* ── Tags ── */
+    .note-tags-row {
+      display:flex;flex-wrap:wrap;gap:5px;
+      margin-bottom:10px;
+    }
+    .note-tag {
+      font-size:9px;font-weight:600;
+      padding:3px 9px;border-radius:999px;
+      background:#f5f3ff;color:#7C3AED;
+      border:1px solid #ddd6fe;
+    }
+
+    /* ── Card Footer ── */
+    .note-card-footer {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      margin-top:auto;
+    }
+    .note-card-date {
+      font-size:10px;color:#9ca3af;
+      font-weight:500;
+    }
+    .note-card-btns {
+      display:flex;gap:6px;
+    }
+    .note-edit-btn {
+      padding:5px 14px;
+      border-radius:8px;
+      border:none;
+      background:#ede9fe;
+      color:#7C3AED;
+      font-size:11px;font-weight:700;
+      cursor:pointer;font-family:var(--font);
+      transition:all 0.15s;
+    }
+    .note-edit-btn:hover { background:#7C3AED;color:#fff; }
+    .note-del-btn {
+      padding:5px 14px;
+      border-radius:8px;border:none;
+      background:#fef2f2;color:#dc2626;
+      font-size:11px;font-weight:700;
+      cursor:pointer;font-family:var(--font);
+      transition:all 0.15s;
+    }
+    .note-del-btn:hover { background:#dc2626;color:#fff; }
+
+    /* ── Empty State ── */
+    .notes-empty {
+      text-align:center;padding:48px 20px;
+      color:#a78bfa;font-size:13px;font-weight:600;
+      grid-column:1/-1;
+    }
+    .notes-empty-icon { font-size:48px;margin-bottom:12px; }
+
+    /* ── Modal ── */
+    .notes-modal-overlay {
+      position:fixed;inset:0;
+      background:rgba(22,17,58,0.55);
+      backdrop-filter:blur(6px);
+      z-index:800;
+      display:none;
+      align-items:flex-end;
+      justify-content:center;
+    }
+    .notes-modal-overlay.open { display:flex; }
+    .notes-modal-sheet {
+      background:#fff;
+      border-radius:24px 24px 0 0;
+      width:100%;max-width:560px;
+      max-height:92vh;
+      overflow-y:auto;
+      padding:20px 20px;
+      padding-bottom:max(32px,env(safe-area-inset-bottom,20px));
+      box-shadow:0 -8px 40px rgba(124,58,237,0.18);
+    }
+    .notes-modal-handle {
+      width:40px;height:4px;
+      background:#e5e7eb;border-radius:2px;
+      margin:0 auto 18px;
+    }
+    .notes-modal-title {
+      font-size:18px;font-weight:900;
+      color:#1e1b4b;margin-bottom:16px;
+    }
+    .notes-form-field {
+      margin-bottom:12px;
+    }
+    .notes-form-label {
+      display:block;
+      font-size:11px;font-weight:700;
+      color:#9ca3af;
+      text-transform:uppercase;
+      letter-spacing:0.5px;
+      margin-bottom:5px;
+    }
+    .notes-form-input {
+      width:100%;padding:10px 14px;
+      border:1.5px solid rgba(200,195,240,0.7);
+      border-radius:12px;
+      background:#fafafe;
+      color:#1e1b4b;font-size:15px;
+      outline:none;font-family:var(--font);
+      box-sizing:border-box;
+      transition:border-color 0.2s;
+    }
+    .notes-form-input:focus { border-color:#7C3AED; }
+    .notes-form-textarea {
+      width:100%;padding:10px 14px;
+      border:1.5px solid rgba(200,195,240,0.7);
+      border-radius:12px;
+      background:#fafafe;color:#1e1b4b;
+      font-size:14px;outline:none;
+      font-family:var(--font);
+      resize:vertical;min-height:90px;
+      box-sizing:border-box;
+      transition:border-color 0.2s;
+    }
+    .notes-form-textarea:focus { border-color:#7C3AED; }
+    .notes-form-select {
+      width:100%;padding:10px 14px;
+      border:1.5px solid rgba(200,195,240,0.7);
+      border-radius:12px;background:#fafafe;
+      color:#1e1b4b;font-size:15px;
+      outline:none;font-family:var(--font);
+      box-sizing:border-box;cursor:pointer;
+    }
+    .notes-img-upload-area {
+      border:2px dashed #ddd6fe;
+      border-radius:14px;padding:18px;
+      text-align:center;cursor:pointer;
+      background:#fafafe;
+      transition:all 0.2s;
+    }
+    .notes-img-upload-area:hover {
+      border-color:#7C3AED;background:#f5f3ff;
+    }
+    .notes-img-preview {
+      width:100%;max-height:160px;
+      object-fit:cover;border-radius:10px;
+      display:block;margin-bottom:8px;
+    }
+    .notes-tags-input-wrap {
+      display:flex;gap:7px;
+      flex-wrap:wrap;
+      padding:8px;
+      border:1.5px solid rgba(200,195,240,0.7);
+      border-radius:12px;
+      background:#fafafe;
+      min-height:44px;
+      align-items:center;
+      cursor:text;
+    }
+    .notes-tag-pill {
+      display:inline-flex;align-items:center;gap:4px;
+      background:#ede9fe;color:#7C3AED;
+      border-radius:999px;padding:3px 10px;
+      font-size:11px;font-weight:600;
+    }
+    .notes-tag-pill-remove {
+      cursor:pointer;font-size:12px;
+      background:none;border:none;
+      color:#7C3AED;padding:0;line-height:1;
+    }
+    .notes-tag-pill-remove:hover { color:#dc2626; }
+    .notes-tag-text-input {
+      border:none;outline:none;
+      font-size:13px;background:transparent;
+      font-family:var(--font);color:#1e1b4b;
+      min-width:80px;flex:1;
+      padding:2px 4px;
+    }
+    .notes-toggle-row {
+      display:flex;gap:14px;
+      margin-bottom:14px;
+    }
+    .notes-toggle-item {
+      display:flex;align-items:center;gap:8px;
+      font-size:13px;font-weight:600;color:#4b5563;
+      cursor:pointer;
+    }
+    .notes-toggle-item input {
+      width:18px;height:18px;
+      accent-color:#7C3AED;cursor:pointer;
+    }
+    .notes-modal-btns {
+      display:flex;gap:10px;margin-top:16px;
+    }
+    .notes-save-btn {
+      flex:1;padding:13px;
+      background:linear-gradient(135deg,#7C3AED,#6d28d9);
+      color:#fff;border:none;border-radius:999px;
+      font-size:14px;font-weight:700;
+      cursor:pointer;font-family:var(--font);
+      transition:opacity 0.2s;
+    }
+    .notes-save-btn:hover { opacity:0.9; }
+    .notes-cancel-btn {
+      flex:1;padding:13px;
+      background:#f3f4f6;color:#6b7280;
+      border:1.5px solid #e5e7eb;
+      border-radius:999px;font-size:14px;
+      cursor:pointer;font-family:var(--font);
+    }
+
+    /* Night theme */
+    body.theme-night .note-card {
+      background:rgba(26,22,64,0.88);
+      border:1px solid rgba(139,92,246,0.15);
+    }
+    body.theme-night .note-card-title { color:#e0e7ff; }
+    body.theme-night .note-card-desc { color:#818cf8; }
+    body.theme-night .notes-tabs-wrap {
+      background:rgba(26,22,64,0.95);
+    }
+    body.theme-night .notes-search-input {
+      background:rgba(26,22,64,0.7);
+      border-color:rgba(139,92,246,0.2);
+      color:#e0e7ff;
+    }
+    body.theme-night .notes-modal-sheet {
+      background:#1a1640;
+    }
+    body.theme-night .notes-modal-title { color:#e0e7ff; }
+    body.theme-night .notes-form-input,
+    body.theme-night .notes-form-textarea,
+    body.theme-night .notes-form-select {
+      background:rgba(26,22,64,0.7);
+      border-color:rgba(139,92,246,0.2);
+      color:#e0e7ff;
+    }
+    body.theme-night .notes-stats-row {
+      background:rgba(26,22,64,0.95);
+    }
+  `;
+  document.head.appendChild(s);
+})();
+
+/* ═══════════════════════════════════════════════════
+   NOTES CONSTANTS
+═══════════════════════════════════════════════════ */
+const NOTE_SECTIONS = [
+  { id:'study',      label:'📘 Study',      color:'#7C3AED', bg:'#ede9fe', textColor:'#7C3AED' },
+  { id:'finance',    label:'💰 Finance',    color:'#059669', bg:'#dcfce7', textColor:'#059669' },
+  { id:'ideas',      label:'🧠 Ideas',      color:'#f59e0b', bg:'#fef3c7', textColor:'#d97706' },
+  { id:'goals',      label:'🎯 Goals',      color:'#ec4899', bg:'#fce7f3', textColor:'#be185d' },
+  { id:'screenshots',label:'📸 Screenshots',color:'#0284c7', bg:'#dbeafe', textColor:'#1d4ed8' },
+  { id:'personal',   label:'❤️ Personal',   color:'#e11d48', bg:'#ffe4e6', textColor:'#be123c' },
+];
+
+/* ═══════════════════════════════════════════════════
+   NOTES STATE
+═══════════════════════════════════════════════════ */
+let notesFilter       = 'all';
+let notesSearchQuery  = '';
+let notesEditingId    = null;
+let notesImgData      = null;
+let notesTags         = [];
+let notesPageBuilt    = false;
+
+/* ═══════════════════════════════════════════════════
+   ENSURE NOTES IN STATE
+═══════════════════════════════════════════════════ */
+function ensureNotes() {
+  if (!Array.isArray(state.notes)) state.notes = [];
+  if (!state.notesUpdatedAt) state.notesUpdatedAt = 0;
+}
+
+/* ═══════════════════════════════════════════════════
+   BUILD NOTES PAGE SHELL
+═══════════════════════════════════════════════════ */
+function buildNotesPage() {
+  const page = document.getElementById('page-notes');
+  if (!page) return;
+  page.innerHTML = '';
+
+  const root = document.createElement('div');
+  root.className = 'notes-root';
+  root.id = 'notes-root';
+
+  root.innerHTML = `
+    <!-- Header -->
+    <div class="notes-header">
+      <div class="notes-header-left">
+        <div class="notes-header-label">NOTES</div>
+        <div class="notes-header-title">My Second Brain 🧠</div>
+      </div>
+      <button class="notes-new-btn" onclick="openNoteModal()" aria-label="Add new note">
+        + New Note
+      </button>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="notes-stats-row" id="notes-stats-row" role="region" aria-label="Notes statistics">
+      <div class="notes-stat-item">
+        <div class="notes-stat-num" id="nst-total" style="color:#7C3AED;">0</div>
+        <div class="notes-stat-lbl">TOTAL</div>
+      </div>
+      <div class="notes-stat-item">
+        <div class="notes-stat-num" id="nst-pinned" style="color:#f59e0b;">0</div>
+        <div class="notes-stat-lbl">PINNED</div>
+      </div>
+      <div class="notes-stat-item">
+        <div class="notes-stat-num" id="nst-fav" style="color:#ec4899;">0</div>
+        <div class="notes-stat-lbl">FAVORITES</div>
+      </div>
+      <div class="notes-stat-item">
+        <div class="notes-stat-num" id="nst-week" style="color:#22c55e;">0</div>
+        <div class="notes-stat-lbl">THIS WEEK</div>
+      </div>
+      <div class="notes-stat-item">
+        <div class="notes-stat-num" id="nst-images" style="color:#0284c7;">0</div>
+        <div class="notes-stat-lbl">IMAGES</div>
+      </div>
+    </div>
+
+    <!-- Section Tabs -->
+    <div class="notes-tabs-wrap" role="group" aria-label="Filter by section">
+      <button class="notes-tab active" data-section="all"
+        onclick="notesSetFilter('all',this)">All</button>
+      ${NOTE_SECTIONS.map(s => `
+        <button class="notes-tab" data-section="${s.id}"
+          onclick="notesSetFilter('${s.id}',this)">${s.label}</button>
+      `).join('')}
+    </div>
+
+    <!-- Search -->
+    <div class="notes-search-wrap">
+      <span class="notes-search-icon">🔍</span>
+      <input class="notes-search-input" id="notes-search-input"
+        type="text" placeholder="Search notes, tags, titles..."
+        oninput="notesOnSearch(this.value)"
+        aria-label="Search notes"/>
+    </div>
+
+    <!-- Notes content -->
+    <div id="notes-content"></div>
+  `;
+
+  page.appendChild(root);
+  notesPageBuilt = true;
+  renderNotes();
+}
+
+/* ═══════════════════════════════════════════════════
+   RENDER NOTES
+═══════════════════════════════════════════════════ */
+function renderNotes() {
+  ensureNotes();
+  const content = document.getElementById('notes-content');
+  if (!content) return;
+
+  notesUpdateStats();
+
+  const q = notesSearchQuery.toLowerCase().trim();
+
+  // Filter notes
+  let filtered = state.notes.filter(n => {
+    if (notesFilter !== 'all' && n.section !== notesFilter) return false;
+    if (q) {
+      const inTitle = (n.title||'').toLowerCase().includes(q);
+      const inDesc  = (n.desc||'').toLowerCase().includes(q);
+      const inTags  = (n.tags||[]).some(t => t.toLowerCase().includes(q));
+      if (!inTitle && !inDesc && !inTags) return false;
+    }
+    return true;
+  });
+
+  // Sort: pinned first, then newest
+  filtered.sort((a,b) => {
+    if (a.pinned && !b.pinned) return -1;
+    if (!a.pinned && b.pinned) return 1;
+    return (b.createdAt||'').localeCompare(a.createdAt||'');
+  });
+
+  const pinned = filtered.filter(n => n.pinned);
+  const rest   = filtered.filter(n => !n.pinned);
+
+  let html = '';
+
+  // Pinned section
+  if (pinned.length > 0) {
+    html += `<div class="notes-section-label">📌 PINNED NOTES</div>`;
+    html += `<div class="notes-grid">`;
+    html += pinned.map(n => buildNoteCardHTML(n)).join('');
+    html += `</div>`;
+  }
+
+  // All notes section
+  if (rest.length > 0) {
+    html += `<div class="notes-section-label" style="margin-top:16px;">🗒️ ALL NOTES</div>`;
+    html += `<div class="notes-grid">`;
+    html += rest.map(n => buildNoteCardHTML(n)).join('');
+    html += `</div>`;
+  }
+
+  // Empty state
+  if (filtered.length === 0) {
+    html += `
+      <div class="notes-grid">
+        <div class="notes-empty">
+          <div class="notes-empty-icon">📝</div>
+          ${q ? 'No notes match your search.' :
+            notesFilter !== 'all'
+              ? 'No notes in this section yet.'
+              : 'No notes yet — tap <strong>+ New Note</strong> to start!'}
+        </div>
+      </div>`;
+  }
+
+  content.innerHTML = html;
+}
+
+/* ═══════════════════════════════════════════════════
+   BUILD NOTE CARD HTML
+═══════════════════════════════════════════════════ */
+function buildNoteCardHTML(n) {
+  const sec = NOTE_SECTIONS.find(s => s.id === n.section) || NOTE_SECTIONS[0];
+  const tagsHTML = (n.tags||[]).slice(0,4).map(t =>
+    `<span class="note-tag">${sanitizeHTML(t)}</span>`
+  ).join('');
+
+  const imageHTML = n.image
+    ? `<img class="note-card-image" src="${n.image}" alt="Note image" loading="lazy"/>`
+    : (n.section === 'screenshots'
+        ? `<div class="note-card-image-placeholder">
+             <span>📸</span>
+             <small>screenshot saved</small>
+           </div>`
+        : '');
+
+  const favIcon = n.favorite ? '★' : '☆';
+  const favColor = n.favorite ? '#f59e0b' : '#d1d5db';
+
+  return `
+    <div class="note-card" id="note-${n.id}">
+      <div class="note-card-top-bar" style="background:${sec.color};"></div>
+      <div class="note-card-body">
+        <!-- Header row -->
+        <div class="note-card-header">
+          <span class="note-section-badge"
+            style="background:${sec.bg};color:${sec.textColor};">
+            ${sec.label}
+          </span>
+          <div class="note-card-actions-top">
+            <button class="note-fav-btn"
+              style="color:${favColor};"
+              onclick="notesToggleFav('${n.id}')"
+              aria-label="${n.favorite ? 'Remove from favorites' : 'Add to favorites'}">
+              ${favIcon}
+            </button>
+            ${n.pinned
+              ? `<span class="note-pin-badge">📌 Pin</span>`
+              : ''}
+          </div>
+        </div>
+
+        <!-- Image -->
+        ${imageHTML}
+
+        <!-- Title -->
+        <div class="note-card-title">${sanitizeHTML(n.title||'Untitled')}</div>
+
+        <!-- Description -->
+        ${n.desc
+          ? `<div class="note-card-desc">${sanitizeHTML(n.desc)}</div>`
+          : ''}
+
+        <!-- Tags -->
+        ${tagsHTML
+          ? `<div class="note-tags-row">${tagsHTML}</div>`
+          : ''}
+
+        <!-- Footer -->
+        <div class="note-card-footer">
+          <span class="note-card-date">
+            ${formatDateShort(n.createdAt) || n.createdAt || ''}
+          </span>
+          <div class="note-card-btns">
+            <button class="note-edit-btn"
+              onclick="openNoteModal('${n.id}')"
+              aria-label="Edit note">Edit</button>
+            <button class="note-del-btn"
+              onclick="deleteNote('${n.id}')"
+              aria-label="Delete note">Del</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+/* ═══════════════════════════════════════════════════
+   STATS
+═══════════════════════════════════════════════════ */
+function notesUpdateStats() {
+  ensureNotes();
+  const notes = state.notes;
+  const total   = notes.length;
+  const pinned  = notes.filter(n => n.pinned).length;
+  const fav     = notes.filter(n => n.favorite).length;
+  const images  = notes.filter(n => n.image).length;
+
+  // This week
+  const now = new Date();
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - 7);
+  const wsKey = weekStart.toISOString().slice(0,10);
+  const thisWeek = notes.filter(n => (n.createdAt||'') >= wsKey).length;
+
+  const set = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+  };
+  set('nst-total',  total);
+  set('nst-pinned', pinned);
+  set('nst-fav',    fav);
+  set('nst-week',   thisWeek);
+  set('nst-images', images);
+}
+
+/* ═══════════════════════════════════════════════════
+   FILTER + SEARCH
+═══════════════════════════════════════════════════ */
+function notesSetFilter(section, btn) {
+  notesFilter = section;
+  document.querySelectorAll('.notes-tab').forEach(b => {
+    b.classList.toggle('active', b.dataset.section === section);
+  });
+  renderNotes();
+}
+
+function notesOnSearch(val) {
+  notesSearchQuery = val;
+  renderNotes();
+}
+
+/* ═══════════════════════════════════════════════════
+   OPEN / CLOSE MODAL
+═══════════════════════════════════════════════════ */
+function openNoteModal(id) {
+  notesEditingId = id || null;
+  notesImgData   = null;
+  notesTags      = [];
+
+  _ensureNoteModal();
+
+  const modal = document.getElementById('notes-modal-overlay');
+  const title = document.getElementById('nm-title-input');
+  const desc  = document.getElementById('nm-desc-input');
+  const sec   = document.getElementById('nm-section-select');
+  const pin   = document.getElementById('nm-pin-check');
+  const fav   = document.getElementById('nm-fav-check');
+  const mTitle= document.getElementById('nm-modal-title');
+  const preview = document.getElementById('nm-img-preview');
+  const previewWrap = document.getElementById('nm-img-preview-wrap');
+  const placeholder = document.getElementById('nm-img-placeholder');
+
+  if (id) {
+    // Edit mode
+    ensureNotes();
+    const n = state.notes.find(x => x.id === id);
+    if (!n) return;
+    if (mTitle) mTitle.textContent = 'Edit Note';
+    if (title) title.value = n.title || '';
+    if (desc)  desc.value  = n.desc  || '';
+    if (sec)   sec.value   = n.section || 'study';
+    if (pin)   pin.checked = !!n.pinned;
+    if (fav)   fav.checked = !!n.favorite;
+    notesTags = [...(n.tags || [])];
+    notesImgData = n.image || null;
+    if (notesImgData && preview) {
+      preview.src = notesImgData;
+      if (previewWrap) previewWrap.style.display = 'block';
+      if (placeholder) placeholder.style.display = 'none';
+    } else {
+      if (previewWrap) previewWrap.style.display = 'none';
+      if (placeholder) placeholder.style.display = 'block';
+    }
+  } else {
+    // New mode
+    if (mTitle) mTitle.textContent = 'New Note';
+    if (title) title.value = '';
+    if (desc)  desc.value  = '';
+    if (sec)   sec.value   = notesFilter !== 'all' ? notesFilter : 'study';
+    if (pin)   pin.checked = false;
+    if (fav)   fav.checked = false;
+    if (previewWrap) previewWrap.style.display = 'none';
+    if (placeholder) placeholder.style.display = 'block';
+  }
+
+  _notesRenderTagPills();
+
+  if (modal) {
+    modal.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    if (title) title.focus();
+  }
+}
+
+function closeNoteModal() {
+  const modal = document.getElementById('notes-modal-overlay');
+  if (modal) modal.classList.remove('open');
+  document.body.style.overflow = '';
+  notesEditingId = null;
+  notesImgData   = null;
+  notesTags      = [];
+}
+
+/* ═══════════════════════════════════════════════════
+   ENSURE MODAL EXISTS IN DOM
+═══════════════════════════════════════════════════ */
+function _ensureNoteModal() {
+  if (document.getElementById('notes-modal-overlay')) return;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'notes-modal-overlay';
+  overlay.id = 'notes-modal-overlay';
+  overlay.setAttribute('role','dialog');
+  overlay.setAttribute('aria-modal','true');
+  overlay.setAttribute('aria-label','Note editor');
+  overlay.onclick = e => { if (e.target === overlay) closeNoteModal(); };
+
+  overlay.innerHTML = `
+    <div class="notes-modal-sheet">
+      <div class="notes-modal-handle"></div>
+      <div class="notes-modal-title" id="nm-modal-title">New Note</div>
+
+      <!-- Section -->
+      <div class="notes-form-field">
+        <label class="notes-form-label" for="nm-section-select">Section</label>
+        <select class="notes-form-select" id="nm-section-select">
+          ${NOTE_SECTIONS.map(s =>
+            `<option value="${s.id}">${s.label}</option>`
+          ).join('')}
+        </select>
+      </div>
+
+      <!-- Title -->
+      <div class="notes-form-field">
+        <label class="notes-form-label" for="nm-title-input">Title</label>
+        <input class="notes-form-input" id="nm-title-input"
+          type="text" placeholder="Note title..." maxlength="80"/>
+      </div>
+
+      <!-- Description -->
+      <div class="notes-form-field">
+        <label class="notes-form-label" for="nm-desc-input">Description</label>
+        <textarea class="notes-form-textarea" id="nm-desc-input"
+          placeholder="Write your note here..." maxlength="1000"></textarea>
+      </div>
+
+      <!-- Image Upload -->
+      <div class="notes-form-field">
+        <label class="notes-form-label">Image (optional)</label>
+        <div class="notes-img-upload-area"
+          onclick="document.getElementById('nm-file-input').click()"
+          role="button" tabindex="0"
+          aria-label="Upload image">
+          <div id="nm-img-preview-wrap" style="display:none;">
+            <img id="nm-img-preview" class="notes-img-preview" alt="Preview"/>
+            <div style="font-size:11px;color:#7C3AED;font-weight:600;">
+              Tap to change image
+            </div>
+          </div>
+          <div id="nm-img-placeholder">
+            <div style="font-size:28px;margin-bottom:6px;">📷</div>
+            <div style="font-size:12px;font-weight:600;color:#7C3AED;">
+              Tap to upload image
+            </div>
+            <div style="font-size:10px;color:#a78bfa;margin-top:2px;">
+              JPG or PNG — stored on this device
+            </div>
+          </div>
+        </div>
+        <input type="file" id="nm-file-input" accept="image/*"
+          style="display:none;"
+          onchange="notesHandleImageUpload(this)"/>
+      </div>
+
+      <!-- Tags -->
+      <div class="notes-form-field">
+        <label class="notes-form-label">Tags</label>
+        <div class="notes-tags-input-wrap" id="nm-tags-wrap"
+          onclick="document.getElementById('nm-tag-input').focus()">
+          <div id="nm-tag-pills"></div>
+          <input class="notes-tag-text-input" id="nm-tag-input"
+            placeholder="Add tag, press Enter..."
+            maxlength="20"
+            onkeydown="notesTagKeydown(event)"/>
+        </div>
+      </div>
+
+      <!-- Pin + Favorite -->
+      <div class="notes-toggle-row">
+        <label class="notes-toggle-item">
+          <input type="checkbox" id="nm-pin-check"/>
+          📌 Pin this note
+        </label>
+        <label class="notes-toggle-item">
+          <input type="checkbox" id="nm-fav-check"/>
+          ★ Mark as favorite
+        </label>
+      </div>
+
+      <!-- Buttons -->
+      <div class="notes-modal-btns">
+        <button class="notes-cancel-btn" onclick="closeNoteModal()">
+          Cancel
+        </button>
+        <button class="notes-save-btn" onclick="saveNote()">
+          Save Note
+        </button>
+      </div>
+    </div>`;
+
+  document.body.appendChild(overlay);
+}
+
+/* ═══════════════════════════════════════════════════
+   TAGS MANAGEMENT
+═══════════════════════════════════════════════════ */
+function notesTagKeydown(e) {
+  if (e.key === 'Enter' || e.key === ',') {
+    e.preventDefault();
+    const val = e.target.value.trim().replace(/,/g,'');
+    if (val && !notesTags.includes(val) && notesTags.length < 8) {
+      notesTags.push(val);
+      e.target.value = '';
+      _notesRenderTagPills();
+    }
+  }
+  if (e.key === 'Backspace' && !e.target.value && notesTags.length) {
+    notesTags.pop();
+    _notesRenderTagPills();
+  }
+}
+
+function notesRemoveTag(idx) {
+  notesTags.splice(idx, 1);
+  _notesRenderTagPills();
+}
+
+function _notesRenderTagPills() {
+  const wrap = document.getElementById('nm-tag-pills');
+  if (!wrap) return;
+  wrap.innerHTML = notesTags.map((t, i) => `
+    <span class="notes-tag-pill">
+      ${sanitizeHTML(t)}
+      <button class="notes-tag-pill-remove"
+        onclick="notesRemoveTag(${i})"
+        aria-label="Remove tag ${sanitizeHTML(t)}">×</button>
+    </span>
+  `).join('');
+}
+
+/* ═══════════════════════════════════════════════════
+   IMAGE UPLOAD
+═══════════════════════════════════════════════════ */
+function notesHandleImageUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const ALLOWED = ['image/jpeg','image/jpg','image/png','image/gif','image/webp'];
+  if (!ALLOWED.includes(file.type)) {
+    showToast('Please upload JPG, PNG, GIF or WebP','rt');
+    input.value = ''; return;
+  }
+  if (file.size > 8 * 1024 * 1024) {
+    showToast('Image too large — max 8MB','rt');
+    input.value = ''; return;
+  }
+
+  const preview = document.getElementById('nm-img-preview');
+  const previewWrap = document.getElementById('nm-img-preview-wrap');
+  const placeholder = document.getElementById('nm-img-placeholder');
+
+  const img = new Image();
+  img.onerror = () => {
+    URL.revokeObjectURL(img.src);
+    showToast('Could not read image','rt');
+    input.value = '';
+  };
+  img.onload = () => {
+    URL.revokeObjectURL(img.src);
+    const MAX = 600;
+    const canvas = document.createElement('canvas');
+    const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+    canvas.width  = Math.round(img.width  * scale);
+    canvas.height = Math.round(img.height * scale);
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    notesImgData = canvas.toDataURL('image/webp', 0.75) ||
+                   canvas.toDataURL('image/jpeg', 0.75);
+    if (preview) {
+      preview.src = notesImgData;
+      if (previewWrap) previewWrap.style.display = 'block';
+      if (placeholder) placeholder.style.display = 'none';
+    }
+    showToast('Image loaded!','gt');
+  };
+  img.src = URL.createObjectURL(file);
+}
+
+/* ═══════════════════════════════════════════════════
+   SAVE NOTE
+═══════════════════════════════════════════════════ */
+function saveNote() {
+  const titleEl = document.getElementById('nm-title-input');
+  const descEl  = document.getElementById('nm-desc-input');
+  const secEl   = document.getElementById('nm-section-select');
+  const pinEl   = document.getElementById('nm-pin-check');
+  const favEl   = document.getElementById('nm-fav-check');
+
+  const title = titleEl ? titleEl.value.trim() : '';
+  if (!title) {
+    showToast('Please enter a title','yt');
+    if (titleEl) titleEl.focus();
+    return;
+  }
+  if (title.length > 80) {
+    showToast('Title too long (max 80 chars)','yt');
+    return;
+  }
+
+  ensureNotes();
+
+  if (notesEditingId) {
+    // Update existing
+    const n = state.notes.find(x => x.id === notesEditingId);
+    if (n) {
+      n.title    = title;
+      n.desc     = descEl ? descEl.value.trim() : '';
+      n.section  = secEl  ? secEl.value  : 'study';
+      n.pinned   = pinEl  ? pinEl.checked : false;
+      n.favorite = favEl  ? favEl.checked : false;
+      n.tags     = [...notesTags];
+      if (notesImgData !== null) n.image = notesImgData;
+      n.updatedAt = todayKey();
+    }
+    showToast('Note updated!','gt');
+  } else {
+    // Create new
+    state.notes.unshift({
+      id:        genId(),
+      title,
+      desc:      descEl  ? descEl.value.trim()  : '',
+      section:   secEl   ? secEl.value           : 'study',
+      image:     notesImgData || null,
+      tags:      [...notesTags],
+      pinned:    pinEl   ? pinEl.checked  : false,
+      favorite:  favEl   ? favEl.checked  : false,
+      createdAt: todayKey(),
+      updatedAt: todayKey(),
+    });
+    showToast('Note saved!','gt');
+    if (typeof confetti === 'function') confetti();
+  }
+
+  state.notesUpdatedAt = Date.now();
+  closeNoteModal();
+  debouncedSave();
+  renderNotes();
+}
+
+/* ═══════════════════════════════════════════════════
+   DELETE NOTE
+═══════════════════════════════════════════════════ */
+function deleteNote(id) {
+  if (!confirm('Delete this note?')) return;
+  ensureNotes();
+  state.notes = state.notes.filter(n => n.id !== id);
+  state.notesUpdatedAt = Date.now();
+  debouncedSave();
+  renderNotes();
+  showToast('Note deleted');
+}
+
+/* ═══════════════════════════════════════════════════
+   TOGGLE PIN / FAVORITE
+═══════════════════════════════════════════════════ */
+function notesTogglePin(id) {
+  ensureNotes();
+  const n = state.notes.find(x => x.id === id);
+  if (!n) return;
+  n.pinned = !n.pinned;
+  state.notesUpdatedAt = Date.now();
+  debouncedSave();
+  renderNotes();
+  showToast(n.pinned ? 'Note pinned! 📌' : 'Unpinned', 'gt');
+}
+
+function notesToggleFav(id) {
+  ensureNotes();
+  const n = state.notes.find(x => x.id === id);
+  if (!n) return;
+  n.favorite = !n.favorite;
+  state.notesUpdatedAt = Date.now();
+  debouncedSave();
+  renderNotes();
+  showToast(n.favorite ? 'Added to favorites ★' : 'Removed from favorites', 'gt');
+}
+
+/* ═══════════════════════════════════════════════════
+   HOOK INTO SHOW PAGE
+═══════════════════════════════════════════════════ */
+const _origShowPage = window.showPage;
+window.showPage = function(id, btn) {
+  _origShowPage(id, btn);
+  if (id === 'notes') {
+    if (!notesPageBuilt) {
+      buildNotesPage();
+    } else {
+      renderNotes();
+    }
+  }
+};
+
+/* ═══════════════════════════════════════════════════
+   HOOK INTO FIREBASE SAVE — include notes in payload
+═══════════════════════════════════════════════════ */
+const _origBuildDailyPayload = window.buildDailyPayload;
+if (typeof _origBuildDailyPayload === 'function') {
+  window.buildDailyPayload = function() {
+    const payload = _origBuildDailyPayload();
+    ensureNotes();
+    // Store notes without large images to keep payload small
+    payload.notes = state.notes.map(n => ({
+      ...n,
+      image: n.image && n.image.length > 5000
+        ? '__local_image__'
+        : n.image
+    }));
+    payload.notesUpdatedAt = state.notesUpdatedAt || 0;
+    return payload;
+  };
+}
+
+/* ═══════════════════════════════════════════════════
+   HOOK INTO APPLY DAILY DOC — load notes from Firebase
+═══════════════════════════════════════════════════ */
+const _origApplyDailyDoc = window.applyDailyDoc;
+if (typeof _origApplyDailyDoc === 'function') {
+  window.applyDailyDoc = function(d) {
+    _origApplyDailyDoc(d);
+    if (Array.isArray(d.notes) &&
+        (d.notesUpdatedAt||0) > (state.notesUpdatedAt||0)) {
+      // Merge remote notes — keep local images
+      const localMap = new Map(
+        (state.notes||[]).map(n => [n.id, n])
+      );
+      d.notes.forEach(remote => {
+        if (!remote.id) return;
+        const local = localMap.get(remote.id);
+        // Keep local image if remote has placeholder
+        if (remote.image === '__local_image__' && local && local.image) {
+          remote.image = local.image;
+        }
+        localMap.set(remote.id, remote);
+      });
+      state.notes = Array.from(localMap.values());
+      state.notesUpdatedAt = d.notesUpdatedAt;
+    }
+  };
+}
+
+/* ═══════════════════════════════════════════════════
+   KEYBOARD — ESC closes notes modal
+═══════════════════════════════════════════════════ */
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    const m = document.getElementById('notes-modal-overlay');
+    if (m && m.classList.contains('open')) {
+      closeNoteModal();
+    }
+  }
+});
+
+/* ═══════════════════════════════════════════════════
+   EXPORT TO WINDOW
+═══════════════════════════════════════════════════ */
+window.buildNotesPage      = buildNotesPage;
+window.renderNotes         = renderNotes;
+window.openNoteModal       = openNoteModal;
+window.closeNoteModal      = closeNoteModal;
+window.saveNote            = saveNote;
+window.deleteNote          = deleteNote;
+window.notesTogglePin      = notesTogglePin;
+window.notesToggleFav      = notesToggleFav;
+window.notesSetFilter      = notesSetFilter;
+window.notesOnSearch       = notesOnSearch;
+window.notesTagKeydown     = notesTagKeydown;
+window.notesRemoveTag      = notesRemoveTag;
+window.notesHandleImageUpload = notesHandleImageUpload;
+
+console.log('%cNotes module loaded ✅', 'color:#7C3AED;font-weight:900;');
+</script>
+
 </body>
 </html>
