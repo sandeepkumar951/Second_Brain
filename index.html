@@ -1475,6 +1475,7 @@ function buildConfigPayload(){
     habits:safeHabits,sections:state.sections||[],
     reminders:state.reminders||[],
     updatedAt:new Date().toISOString(),
+    updatedBy:_getDeviceId(),   
     habitsUpdatedAt:state.habitsUpdatedAt||0,
     sectionsUpdatedAt:state.sectionsUpdatedAt||0,
     remindersUpdatedAt:state.remindersUpdatedAt||0,
@@ -1695,6 +1696,8 @@ function applyDailyDoc(d){
       else{if(rt.done&&!existing.done)existing.done=true;}
     });
     state.weeklyTasks=Array.from(localMap.values()).filter(t=>!deletedSet.has(t.id));
+    _wtTasksLastHash='';
+    _todayWeeklyHash='';
   }
 
   if(d.waterLog&&typeof d.waterLog==='object'){
@@ -1936,6 +1939,12 @@ function startRealtimeSync(){
         beforeReset!==(state.lastResetTimestamp||0);
       if(changed)showSync('success','Updated from other device');
       if(localHasMore||localChecksNewer)debouncedSave(1200);
+      const remoteWeeklyCount=(remote.weeklyTasks||[]).length;
+        const localWeeklyCount=(state.weeklyTasks||[]).length;
+        if(localWeeklyCount>remoteWeeklyCount){
+            debouncedSave(800);
+}
+
     }catch(err){
       console.warn('Sandy Brain: sync listener error:',err);
     }finally{
@@ -1954,29 +1963,41 @@ function startRealtimeSync(){
   _dailyListenerRef=dailyRef;
 
   /* Config listener */
-  _configListenerCb=configRef.on('value',snap=>{
+_configListenerCb=configRef.on('value',snap=>{
     if(!snap.exists())return;
     const remote=snap.val();
     if(!remote)return;
-    if(remote.updatedAt===_lastRemoteSavedAt)return;
+
+    // Only skip if THIS device saved this exact version
+    if(remote.updatedAt===_lastRemoteSavedAt&&remote.updatedBy===_getDeviceId())return;
+
+    // Only apply if remote has something newer than local
+    const remoteHasNewer=
+        (remote.remindersUpdatedAt||0)>(state.remindersUpdatedAt||0)||
+        (remote.habitsUpdatedAt||0)>(state.habitsUpdatedAt||0)||
+        (remote.sectionsUpdatedAt||0)>(state.sectionsUpdatedAt||0);
+
+    if(!remoteHasNewer)return;
+
     try{applyConfigDoc(remote);}catch(applyErr){
-      console.warn('Sandy Brain: applyConfigDoc error in listener:',applyErr);
+        console.warn('Sandy Brain: applyConfigDoc error in listener:',applyErr);
     }
     try{safeLocalStorageSave(DB_KEY,JSON.stringify(state));}catch(e){}
     if(_configSyncTimer)clearTimeout(_configSyncTimer);
     _configSyncTimer=setTimeout(()=>{
-      _configSyncTimer=null;
-      _settingsNeedRebuild=true;
-      if(typeof handleConfigSyncRebuild==='function')handleConfigSyncRebuild();
-      if(typeof renderReminderList==='function')renderReminderList();
-      if(typeof renderHomeReminders==='function')renderHomeReminders();
-      const sp=document.getElementById('page-settings');
-      if(sp&&sp.classList.contains('active')&&typeof buildSettingsPage==='function')
-        buildSettingsPage();
+        _configSyncTimer=null;
+        _settingsNeedRebuild=true;
+        if(typeof handleConfigSyncRebuild==='function')handleConfigSyncRebuild();
+        if(typeof renderReminderList==='function')renderReminderList();
+        if(typeof renderHomeReminders==='function')renderHomeReminders();
+        const sp=document.getElementById('page-settings');
+        if(sp&&sp.classList.contains('active')&&typeof buildSettingsPage==='function')
+            buildSettingsPage();
     },500);
     showSync('success','Config synced');
-  },err=>{console.warn('Config listener error:',err);});
-  _configListenerRef=configRef;
+},err=>{console.warn('Config listener error:',err);});
+_configListenerRef=configRef;
+
 
   /* Connection state */
   _connectedListenerCb=snap=>{
@@ -7428,28 +7449,57 @@ function renderReminderList(){
 }
 
 function toggleReminder(i,v){
-  const r=(state.reminders||[])[i];if(!r)return;
-  r.enabled=v;
-  state.remindersUpdatedAt=Date.now();
-  debouncedSave();renderReminderList();renderHomeReminders();
-  showToast(v?'Enabled':'Paused');
+    const r=(state.reminders||[])[i];if(!r)return;
+    r.enabled=v;
+    state.remindersUpdatedAt=Date.now();
+    state.habitsUpdatedAt=state.habitsUpdatedAt||0;
+    state.sectionsUpdatedAt=state.sectionsUpdatedAt||0;
+    // Force config to resync by bumping timestamp
+    debouncedSave(200);
+    // Also push config directly so other devices get it fast
+    setTimeout(()=>{
+        try{
+            const configPayload=buildConfigPayload();
+            configPayload.updatedAt=new Date().toISOString();
+            userRef('config').set(configPayload).catch(e=>
+                console.warn('Config sync failed:',e)
+            );
+        }catch(e){}
+    },300);
+    renderReminderList();
+    renderHomeReminders();
+    showToast(v?'Enabled':'Paused');
 }
+
 function deleteReminder(i){
-  if(!confirm('Delete this reminder?'))return;
-  const reminder=(state.reminders||[])[i];
-  if(reminder&&reminder.id){
-    if(!state.deletedReminderIds)state.deletedReminderIds=[];
-    if(!state.deletedReminderIds.includes(reminder.id)){
-      state.deletedReminderIds.push(reminder.id);
+    if(!confirm('Delete this reminder?'))return;
+    const reminder=(state.reminders||[])[i];
+    if(reminder&&reminder.id){
+        if(!state.deletedReminderIds)state.deletedReminderIds=[];
+        if(!state.deletedReminderIds.includes(reminder.id)){
+            state.deletedReminderIds.push(reminder.id);
+        }
+        if(state.deletedReminderIds.length>100)
+            state.deletedReminderIds=state.deletedReminderIds.slice(-100);
     }
-    if(state.deletedReminderIds.length>100)
-      state.deletedReminderIds=state.deletedReminderIds.slice(-100);
-  }
-  state.reminders=(state.reminders||[]).filter((_,idx)=>idx!==i);
-  state.remindersUpdatedAt=Date.now();
-  debouncedSave();renderReminderList();renderHomeReminders();
-  showToast('Deleted');
+    state.reminders=(state.reminders||[]).filter((_,idx)=>idx!==i);
+    state.remindersUpdatedAt=Date.now();
+    debouncedSave(200);
+    // Push config directly for instant cross-device sync
+    setTimeout(()=>{
+        try{
+            const configPayload=buildConfigPayload();
+            configPayload.updatedAt=new Date().toISOString();
+            userRef('config').set(configPayload).catch(e=>
+                console.warn('Config sync failed:',e)
+            );
+        }catch(e){}
+    },300);
+    renderReminderList();
+    renderHomeReminders();
+    showToast('Deleted');
 }
+
 
 /* FIX 16: duplicate reminder check */
 // FIX Bug11 — null guard at top in case page HTML not yet injected
@@ -7482,7 +7532,17 @@ function addReminder(){
     days:selDays.slice(),enabled:true
   });
   state.remindersUpdatedAt=Date.now();
-  debouncedSave();renderReminderList();renderHomeReminders();
+  debouncedSave(200);
+setTimeout(()=>{
+    try{
+        const configPayload=buildConfigPayload();
+        configPayload.updatedAt=new Date().toISOString();
+        userRef('config').set(configPayload).catch(e=>
+            console.warn('Config push failed:',e)
+        );
+    }catch(e){}
+},300);
+renderReminderList();renderHomeReminders();
   if(title)title.value='';
   if(msg)msg.value='';
   if(time)time.value='08:00';
