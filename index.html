@@ -1194,7 +1194,9 @@ function defaultState(){
     sugarWeekStart:sugarWeekStartOf(now),
     jnkViewMonth:now.getMonth(),jnkViewYear:now.getFullYear(),
     jBViewM:now.getMonth(),jBViewY:now.getFullYear(),
-    weeklyTasks:[],weeklyTasksResetDate:'',
+    weeklyTasks:[],
+    weeklyTasksResetDate:'',
+    weeklyTasksUpdatedAt:0,
     deletedWeeklyTaskIds:[],
     waterLog:{},wtReminderInterval:60,
     wtReminderTime:null,wtReminderEnabled:false,
@@ -1233,7 +1235,11 @@ function ensureDefaults(){
   if(!Array.isArray(state.deletedBiryaniEntryIds))state.deletedBiryaniEntryIds=[];
   /* FIX 7 */
   if(!Array.isArray(state.deletedWeeklyTaskIds))state.deletedWeeklyTaskIds=[];
-  if(state.deletedWeeklyTaskIds.length>200)state.deletedWeeklyTaskIds=state.deletedWeeklyTaskIds.slice(-200);
+  /* FIX 7 */
+    if(!Array.isArray(state.deletedWeeklyTaskIds))state.deletedWeeklyTaskIds=[];
+    if(state.deletedWeeklyTaskIds.length>200)state.deletedWeeklyTaskIds=state.deletedWeeklyTaskIds.slice(-200);
+    if(!state.weeklyTasksUpdatedAt)state.weeklyTasksUpdatedAt=0;
+
   /* FIX 8 */
   if(state.ctLastCompletedDate===undefined)state.ctLastCompletedDate=null;
   if(!state.ctWeeklyHours||typeof state.ctWeeklyHours!=='object')state.ctWeeklyHours={};
@@ -1441,6 +1447,7 @@ function buildDailyPayload(){
     sugarWeekStart:state.sugarWeekStart||'',
     weeklyTasks:state.weeklyTasks||[],
     weeklyTasksResetDate:state.weeklyTasksResetDate||'',
+    weeklyTasksUpdatedAt:state.weeklyTasksUpdatedAt||0,
     deletedWeeklyTaskIds:state.deletedWeeklyTaskIds||[],
     waterLog:state.waterLog||{},
     wtReminderInterval:state.wtReminderInterval||60,
@@ -1682,23 +1689,43 @@ function applyDailyDoc(d){
   }
 
   /* FIX 7: weeklyTasks merge with deletedWeeklyTaskIds */
-  if(Array.isArray(d.weeklyTasks)){
-    const deletedSet=new Set([
-      ...(state.deletedWeeklyTaskIds||[]),
-      ...(d.deletedWeeklyTaskIds||[])
-    ]);
-    state.deletedWeeklyTaskIds=Array.from(deletedSet).slice(-200);
-    const localMap=new Map((state.weeklyTasks||[]).map(t=>[t.id,t]));
-    (d.weeklyTasks||[]).forEach(rt=>{
-      if(!rt.id||deletedSet.has(rt.id))return;
-      const existing=localMap.get(rt.id);
-      if(!existing){localMap.set(rt.id,rt);}
-      else{if(rt.done&&!existing.done)existing.done=true;}
-    });
-    state.weeklyTasks=Array.from(localMap.values()).filter(t=>!deletedSet.has(t.id));
-    _wtTasksLastHash='';
-    _todayWeeklyHash='';
-  }
+  /* Weekly tasks CRDT merge — timestamp aware, same as ctTasks */
+if(Array.isArray(d.weeklyTasks)){
+  const remoteTs=d.weeklyTasksUpdatedAt||0;
+  const localTs=state.weeklyTasksUpdatedAt||0;
+
+  const deletedSet=new Set([
+    ...(state.deletedWeeklyTaskIds||[]),
+    ...(d.deletedWeeklyTaskIds||[])
+  ]);
+  state.deletedWeeklyTaskIds=Array.from(deletedSet).slice(-200);
+
+  const localMap=new Map((state.weeklyTasks||[]).map(t=>[t.id,t]));
+
+  (d.weeklyTasks||[]).forEach(rt=>{
+    if(!rt.id||deletedSet.has(rt.id))return;
+    const existing=localMap.get(rt.id);
+    if(!existing){
+      localMap.set(rt.id,rt);
+    }else{
+      if(rt.done&&!existing.done)existing.done=true;
+      if(remoteTs>localTs){
+        existing.name=rt.name||existing.name;
+        existing.note=rt.note||existing.note;
+        existing.day=rt.day||existing.day;
+      }
+    }
+  });
+
+  state.weeklyTasks=Array.from(localMap.values())
+    .filter(t=>!deletedSet.has(t.id));
+
+  state.weeklyTasksUpdatedAt=Math.max(localTs,remoteTs);
+
+  _wtTasksLastHash='';
+  _todayWeeklyHash='';
+}
+
 
   if(d.waterLog&&typeof d.waterLog==='object'){
     state.waterLog=state.waterLog||{};
@@ -1939,10 +1966,10 @@ function startRealtimeSync(){
         beforeReset!==(state.lastResetTimestamp||0);
       if(changed)showSync('success','Updated from other device');
       if(localHasMore||localChecksNewer)debouncedSave(1200);
-      const remoteWeeklyCount=(remote.weeklyTasks||[]).length;
-        const localWeeklyCount=(state.weeklyTasks||[]).length;
-        if(localWeeklyCount>remoteWeeklyCount){
-            debouncedSave(800);
+      const remoteWTts=remote.weeklyTasksUpdatedAt||0;
+    const localWTts=state.weeklyTasksUpdatedAt||0;
+    if(localWTts>remoteWTts){
+      debouncedSave(600);
 }
 
     }catch(err){
@@ -2858,7 +2885,10 @@ function refreshUILightweight(){
   if(typeof jRenderSugar==='function')jRenderSugar();
   if(typeof jRenderBiryani==='function')jRenderBiryani();
   _updateFooterChips();
+  if(typeof wtRenderTasks==='function')wtRenderTasks();
+  if(typeof renderTodayWeeklyPanel==='function')renderTodayWeeklyPanel();
 }
+
 function refreshUI(){
   refreshUILightweight();
   const container=document.getElementById('today-sections');
@@ -6781,12 +6811,14 @@ function wtCheckWeekReset(){
     if(t.day==='Today'||t.day==='Tomorrow'){movedCount++;return Object.assign({},t,{day:'Anytime'});}
     return t;
   });
+  state.weeklyTasksUpdatedAt=Date.now();
   if(movedCount>0)showToast(movedCount+' task'+(movedCount!==1?'s':'')+' moved to Anytime for new week','yt');
   if(doneBefore>0)showToast('New week! '+doneBefore+' completed tasks reset.','gt');
   _wtTasksLastHash='';
   _todayWeeklyHash='';
   debouncedSave(500);
 }
+
 
 /* FIX 20: guard against duplicate day pill listener */
 let _wtDayPillListenerAdded=false;
@@ -6841,22 +6873,26 @@ function wtAddTask(){
   const rawDay=wtSelectedDays.length>0?wtSelectedDays.join(','):'Anytime';
   const day=validateTaskDays(rawDay);
   state.weeklyTasks.push({
-    id:genId(),name,note:noteInp?noteInp.value.trim():'',
-    day,done:false,createdAt:new Date().toISOString()
-  });
-  if(inp)inp.value='';
-  if(noteInp)noteInp.value='';
-  _wtTasksLastHash='';
-  _todayWeeklyHash='';
-  debouncedSave();wtRenderTasks();renderTodayWeeklyPanel();
+  id:genId(),name,note:noteInp?noteInp.value.trim():'',
+  day,done:false,createdAt:new Date().toISOString()
+});
+state.weeklyTasksUpdatedAt=Date.now();
+if(inp)inp.value='';
+if(noteInp)noteInp.value='';
+_wtTasksLastHash='';
+_todayWeeklyHash='';
+debouncedSave(200);wtRenderTasks();renderTodayWeeklyPanel();
+
   showToast('Task added!','gt');
 }
 function wtToggleTask(id){
   const t=(state.weeklyTasks||[]).find(x=>x.id===id);if(!t)return;
-  t.done=!t.done;
-  _wtTasksLastHash='';
-  _todayWeeklyHash='';
-  debouncedSave();wtRenderTasks();renderTodayWeeklyPanel();
+    t.done=!t.done;
+    state.weeklyTasksUpdatedAt=Date.now();
+    _wtTasksLastHash='';
+    _todayWeeklyHash='';
+    debouncedSave(200);wtRenderTasks();renderTodayWeeklyPanel();
+
   updateSummaryCards();updateStatsBanner();
   if(t.done){showToast('Done!','gt');checkBadgesDebounced();}
 }
@@ -6872,6 +6908,7 @@ function wtDeleteTask(id){
     }
   }
   state.weeklyTasks=(state.weeklyTasks||[]).filter(x=>x.id!==id);
+  state.weeklyTasksUpdatedAt=Date.now();
   _wtTasksLastHash='';
   _todayWeeklyHash='';
   debouncedSave();wtRenderTasks();renderTodayWeeklyPanel();
@@ -6902,6 +6939,7 @@ function saveWeeklyEdit(){
   t.name=newName;
   if(nt)t.note=nt.value.trim();
   if(dy)t.day=validateTaskDay(dy.value);
+  state.weeklyTasksUpdatedAt=Date.now();
   _wtTasksLastHash='';
   _todayWeeklyHash='';
   debouncedSave();wtRenderTasks();renderTodayWeeklyPanel();
