@@ -1197,7 +1197,7 @@ function defaultState(){
   const now=new Date();
   return{
     lastDate:'',lastResetTimestamp:0,
-    checks:{},water:0,pts:0,totalPts:0,
+    checks:{},water:0,waterUpdatedAt:0,pts:0,totalPts:0,
     earnedBadges:[],missedBannerDismissedDate:'',
     missedHighlightsShown:false,
     missedTasksAlertTime:'21:00',
@@ -1287,6 +1287,7 @@ function ensureDefaults(){
   if(!state.ctWeeklyHours||typeof state.ctWeeklyHours!=='object')state.ctWeeklyHours={};
   if(!state.ctCareerUpdatedAt)state.ctCareerUpdatedAt=0;
   if(!state.waterLog||typeof state.waterLog!=='object')state.waterLog={};
+  if(!state.waterUpdatedAt)state.waterUpdatedAt=0;
   if(!state.ctDayHistory||typeof state.ctDayHistory!=='object')state.ctDayHistory={};
   if(!state.checks||typeof state.checks!=='object')state.checks={};
   if(typeof state.ctConsecutiveRestDays!=='number')state.ctConsecutiveRestDays=0;
@@ -1458,7 +1459,7 @@ function buildDailyPayload(){
     savedBy:_getDeviceId(),
     lastResetTimestamp:state.lastResetTimestamp||0,
     checks:checksPayload,
-    water:state.water||0,pts:state.pts||0,totalPts:state.totalPts||0,
+    water:state.water||0,waterUpdatedAt:state.waterUpdatedAt||0,pts:state.pts||0,totalPts:state.totalPts||0,
     earnedBadges:state.earnedBadges||[],
     lastDate:state.lastDate||'',
     missedBannerDismissedDate:state.missedBannerDismissedDate||'',
@@ -1556,6 +1557,7 @@ function applyDailyDoc(d){
     state.lastResetTimestamp=remoteResetAt;
     state.checks={};
     state.water=0;
+    state.waterUpdatedAt=remoteResetAt;
     state.pts=0;
   }
   const mergeChecks=!(remoteSavedAt>0&&remoteSavedAt<state.lastResetTimestamp);
@@ -1564,9 +1566,17 @@ function applyDailyDoc(d){
     if(remoteResetAt>=localResetAt){
       state.pts=Math.max(state.pts||0,d.pts||0);
     }
-    state.water=Math.max(state.water||0,d.water||0);
+    const remoteWaterUpdatedAt=sanitizeRemoteNumber(d.waterUpdatedAt,0,Infinity,0);
+    const localWaterUpdatedAt=state.waterUpdatedAt||0;
+    const remoteWater=sanitizeRemoteNumber(d.water,0,WT_GOAL,0);
+    if(remoteWaterUpdatedAt>localWaterUpdatedAt){
+      state.water=remoteWater;
+      state.waterUpdatedAt=remoteWaterUpdatedAt;
+    }else if(!remoteWaterUpdatedAt&&!localWaterUpdatedAt){
+      state.water=Math.max(state.water||0,remoteWater);
+    }
     if(!state.waterLog)state.waterLog={};
-    state.waterLog[todayKey()]=Math.max(state.waterLog[todayKey()]||0,state.water);
+    state.waterLog[todayKey()]=state.water;
     if(d.checks&&typeof d.checks==='object'){
       state.checks=state.checks||{};
       Object.keys(d.checks).forEach(k=>{
@@ -1824,7 +1834,8 @@ if(Array.isArray(d.weeklyTasks)){
       if(!/^\d{4}-\d{2}-\d{2}$/.test(k))return;
       const val=d.waterLog[k];
       if(typeof val!=='number'||val<0||val>50)return;
-      state.waterLog[k]=Math.max(state.waterLog[k]||0,val);
+      if(k===todayKey()&&(d.waterUpdatedAt||0)&&(d.waterUpdatedAt||0)>=(state.waterUpdatedAt||0))state.waterLog[k]=val;
+      else state.waterLog[k]=Math.max(state.waterLog[k]||0,val);
     });
   }
 }
@@ -1903,7 +1914,13 @@ function debouncedSave(delay){
   if(_isApplyingRemote)return;
   saveVersion++;
   clearTimeout(saveDebounceTimer);
-  saveDebounceTimer=setTimeout(()=>save(),delay!==undefined?delay:500);
+  const requestedDelay=delay!==undefined?delay:500;
+  const isTouchClient=window.matchMedia&&window.matchMedia('(pointer: coarse)').matches;
+  const finalDelay=isTouchClient?Math.min(requestedDelay,100):requestedDelay;
+  saveDebounceTimer=setTimeout(()=>{
+    saveDebounceTimer=null;
+    save();
+  },finalDelay);
 }
 window.debouncedSave=debouncedSave;
 
@@ -1923,6 +1940,18 @@ function save(){
   });
   return _saveQueue;
 }
+
+function flushPendingSave(){
+  if(_isApplyingRemote)return;
+  if(saveDebounceTimer){
+    clearTimeout(saveDebounceTimer);
+    saveDebounceTimer=null;
+  }
+  if(saveVersion!==lastSavedVersion||_dirtyFields.size){
+    save();
+  }
+}
+window.flushPendingSave=flushPendingSave;
 
 async function _doSave(){
   if(_isApplyingRemote)return;
@@ -2058,6 +2087,7 @@ function startRealtimeSync(){
     try{
       _isApplyingRemote=true;
       const beforeWater=state.water||0;
+      const beforeWaterUpdatedAt=state.waterUpdatedAt||0;
       const beforePts=state.pts||0;
       const beforeTotal=state.totalPts||0;
       const beforeChecks=JSON.stringify(state.checks||{});
@@ -2071,7 +2101,7 @@ function startRealtimeSync(){
       try{safeLocalStorageSave(DB_KEY,JSON.stringify(state));}catch(e){}
       refreshUILightweight();
       const localHasMore=
-        (state.water||0)>(remote.water||0)||
+        (state.waterUpdatedAt||0)>(remote.waterUpdatedAt||0)||
         (state.pts||0)>(remote.pts||0)||
         (state.totalPts||0)>(remote.totalPts||0)||
         (state.ctStudyHrs||0)>(remote.ctStudyHrs||0)||
@@ -2085,6 +2115,7 @@ function startRealtimeSync(){
       })();
       const changed=
         beforeWater!==(state.water||0)||
+        beforeWaterUpdatedAt!==(state.waterUpdatedAt||0)||
         beforePts!==(state.pts||0)||
         beforeTotal!==(state.totalPts||0)||
         beforeChecks!==JSON.stringify(state.checks||{})||
@@ -2190,6 +2221,7 @@ function handleDailyReset(){
   if(typeof ctEvaluateStreak==='function')ctEvaluateStreak();
   state.checks={};
   state.water=0;
+  state.waterUpdatedAt=Date.now();
   state.pts=0;
   state.ctDayDone=false;
   state.ctStudyHrs=0;
@@ -2198,6 +2230,7 @@ function handleDailyReset(){
   state.missedBannerDismissedDate='';
   state.missedHighlightsShown=false;
   state.lastResetTimestamp=Date.now();
+  state.waterUpdatedAt=state.lastResetTimestamp;
   firedToday={};
   _cachedLastWeekAvg=null;
   _cachedLastWeekAvgDate='';
@@ -2260,6 +2293,7 @@ function scheduleMidnightReset(){
     state.missedBannerDismissedDate='';
     state.missedHighlightsShown=false;
     state.lastResetTimestamp=Date.now();
+    state.waterUpdatedAt=state.lastResetTimestamp;
     firedToday={};wtFilter='all';
     wtSceneInitialized=false;jnkSelected={};jnkGridBuilt=false;
     saveFailCount=0;ctPageBuilt=false;cachedSceneHeight=0;
@@ -2369,6 +2403,7 @@ document.addEventListener('visibilitychange',async()=>{
     state.ctLastStudyDate=null;state.missedBannerDismissedDate='';
     state.missedHighlightsShown=false;
     state.lastResetTimestamp=Date.now();
+    state.waterUpdatedAt=state.lastResetTimestamp;
     firedToday={};wtFilter='all';wtSceneInitialized=false;
     jnkSelected={};jnkGridBuilt=false;saveFailCount=0;
     ctPageBuilt=false;cachedSceneHeight=0;_reminderFirstCheck=true;
@@ -3437,6 +3472,11 @@ window.addEventListener('online',()=>{
 window.addEventListener('offline',()=>{
   updateFbStatus('offline');showToast('Offline — changes saved locally','yt');
 });
+window.addEventListener('pagehide',()=>flushPendingSave());
+window.addEventListener('beforeunload',()=>flushPendingSave());
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden)flushPendingSave();
+});
 window.addEventListener('orientationchange',()=>{
   cachedSceneHeight=0;
   setTimeout(()=>{if(document.getElementById('wt-scene')&&typeof renderWater==='function')renderWater();},300);
@@ -3763,16 +3803,17 @@ function wtBuildGlasses(){
     b.dataset.i=i;
     b.onclick=((idx)=>()=>{
       if(!_firebaseLoaded){showToast('Still loading — please wait','yt');return;}
-      if(wtDone)return;
       const allBtns=row.querySelectorAll('.wt-glass-btn');
       allBtns.forEach(btn=>btn.disabled=true);
       const was=idx<state.water;
       state.water=was?idx:idx+1;
+      state.waterUpdatedAt=Date.now();
       if(!was){wtSpawnDrop();wtBubbles(7);}
       if(!state.waterLog)state.waterLog={};
       state.waterLog[todayKey()]=state.water;
       wtApply(state.water/WT_GOAL);
       renderWater();
+      markDirty('water');markDirty('waterUpdatedAt');
       debouncedSave();
       _updateHydroInsightValues();
       updateStatsBanner();
@@ -3835,6 +3876,13 @@ function wtApply(P){
     else if(P<.70){stEl.textContent='halfway there!';stEl.style.color='#2B7AB8';}
     else if(P<1){stEl.textContent='almost there!';stEl.style.color='#1a5f8f';}
     else{stEl.textContent='goal reached!';stEl.style.color='#27AE60';}
+  }
+  if(P<1&&wtDone){
+    wtDone=false;
+    const cg=document.getElementById('wt-comp-glow');
+    if(cg)cg.classList.remove('show');
+    const cb=document.getElementById('wt-comp-banner');
+    if(cb)cb.classList.remove('show');
   }
   if(P>=1&&!wtDone){
     wtDone=true;
@@ -9172,6 +9220,7 @@ function resetToday(){
   state.water=0;
   state.pts=0;
   state.lastResetTimestamp=Date.now();
+  state.waterUpdatedAt=state.lastResetTimestamp;
   wtDone=false;
   _cachedLastWeekAvg=null;
   _cachedLastWeekAvgDate='';
@@ -10074,7 +10123,7 @@ console.log('%cNotes module loaded (no image upload) ✅','color:#7C3AED;font-we
 /* ═══════════════════════════════════════════════════
    SERVICE WORKER SOURCE
 ═══════════════════════════════════════════════════ */
-const SW_CACHE_NAME='sandy-brain-v8';
+const SW_CACHE_NAME='sandy-brain-v10';
 const SW_SOURCE=`
 'use strict';
 const CACHE_NAME='${SW_CACHE_NAME}';
