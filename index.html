@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
 <meta name="apple-mobile-web-app-title" content="Sandy Brain"/>
 <meta name="theme-color" content="#7C3AED"/>
-<title>Sandy's Second Brain 🧠</title>
+<title>Sandy's Second Brain </title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A7%A0%3C/text%3E%3C/svg%3E"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
@@ -195,6 +195,7 @@ nav,.stats-banner,.weekly-filter-row,.wt-glasses-row,.ct-tag-row,.jnk-cat-grid,.
 .home-rem-title{font-size:14px;font-weight:800;color:var(--purple-600);letter-spacing:-0.2px;}
 .home-rem-count{font-size:11px;font-weight:700;background:var(--purple-600);color:#fff;border-radius:var(--r-pill);padding:3px 10px;}
 .home-rem-item{display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid rgba(139,92,246,0.04);transition:background var(--t-fast);}
+.home-rem-item.is-note-reminder{cursor:pointer;background:linear-gradient(90deg,rgba(139,92,246,0.035),transparent);}
 .home-rem-item:last-child{border-bottom:none;}
 .home-rem-item:hover{background:rgba(139,92,246,0.02);}
 .home-rem-icon{font-size:17px;width:36px;height:36px;border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;background:var(--purple-100);flex-shrink:0;}
@@ -2081,6 +2082,7 @@ function applyConfigDoc(d){
       msg:sanitizeRemoteString(r.msg,100),
       time:validateTimeString(r.time)?r.time:'08:00',
       icon:sanitizeRemoteString(r.icon,10),
+      date:/^\d{4}-\d{2}-\d{2}$/.test(r.date||'')?r.date:'',
       days:Array.isArray(r.days)?r.days.filter(x=>typeof x==='number'&&x>=0&&x<=6):[],
       enabled:sanitizeRemoteBool(r.enabled)
     }));
@@ -3387,6 +3389,7 @@ function _rebuildEveningIfNeeded(){
   const container=document.getElementById('today-sections');
   if(container&&typeof buildEveningSection==='function'){
     container.appendChild(buildEveningSection());
+    if(typeof normalizeTodaySectionOrder==='function')normalizeTodaySectionOrder();
     if(typeof applyChecks==='function')applyChecks();
   }
 }
@@ -5749,10 +5752,17 @@ function ctBuildPage(){
 .j-sec-label{display:flex;align-items:center;gap:8px;font-size:10px;font-weight:900;letter-spacing:1px;text-transform:uppercase;color:#9f8fef;margin:16px 0 8px;}
 .j-sec-label::after{content:'';flex:1;height:1px;background:#e0dcf5;}
 .biry-card{background:linear-gradient(135deg,#fffbeb,#fef3c7);border:1.5px solid #fde68a;border-radius:16px;padding:16px 18px;margin-bottom:12px;}
+.biry-note{font-size:11px;color:#92400e;font-weight:800;margin-bottom:10px;background:rgba(245,158,11,.12);padding:8px 10px;border-radius:9px;line-height:1.35;}
+.biry-count-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.biry-count-meta{font-size:12px;color:#92400e;font-weight:800;}
+.biry-status-copy{font-size:10px;color:#b45309;margin-top:1px;}
+.biry-subcopy{font-size:11px;color:#b45309;}
+.biry-progress-wrap{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:5px;}
+.biry-progress-text{font-size:9px;font-weight:800;color:#b45309;letter-spacing:.4px;text-transform:uppercase;}
 .biry-row{display:flex;align-items:center;gap:10px;cursor:pointer;padding:9px 10px;border-radius:11px;transition:background .2s;}
 .biry-row:hover{background:rgba(245,158,11,.1);}
-.b-slots-row{display:flex;align-items:center;gap:8px;flex-shrink:0;}
-.b-slot{width:22px;height:22px;border-radius:50%;border:2.5px solid #f59e0b;background:transparent;transition:all 0.3s cubic-bezier(.34,1.56,.64,1);}
+.b-slots-row{display:flex;align-items:center;gap:7px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;max-width:128px;}
+.b-slot{width:20px;height:20px;border-radius:50%;border:2.5px solid #f59e0b;background:transparent;transition:all 0.3s cubic-bezier(.34,1.56,.64,1);}
 .b-slot.filled{background:#f59e0b;box-shadow:0 0 10px rgba(245,158,11,0.45);transform:scale(1.1);}
 .b-slot.limit{background:#ef4444;border-color:#ef4444;box-shadow:0 0 10px rgba(239,68,68,0.45);}
 .log-tab-btn{padding:4px 12px;border-radius:18px;border:1.5px solid var(--purple-200);background:#fff;color:var(--purple-600);font-size:11px;font-weight:700;cursor:pointer;transition:all .2s;font-family:var(--font);}
@@ -5950,24 +5960,25 @@ style="width:74px;padding:8px 10px;border:2px solid var(--purple-200);border-rad
 <button data-action="biry-month" data-dir="1" aria-label="Next month">&#8250;</button>
 </div>
 <div class="biry-card" role="region" aria-label="Biryani tracker">
-<div style="font-size:11px;color:#b45309;font-weight:700;margin-bottom:9px;background:rgba(245,158,11,.12);padding:7px 10px;border-radius:7px;">Max 2 biryanis per month — Savour every grain!</div>
-<div style="display:flex;align-items:center;gap:10px;margin-bottom:9px;">
+<div class="biry-note" id="j-b-limit-note">Monthly biryani limit: 4</div>
+<div class="biry-count-row">
 <div style="font-size:34px;font-weight:900;color:#92400e;" id="j-b-count" aria-live="polite">0</div>
-<div><div style="font-size:12px;color:#92400e;font-weight:700;">/ 2 this month</div><div style="font-size:10px;color:#b45309;" id="j-b-rem">2 remaining</div></div>
-<div style="margin-left:auto;">
-<div class="j-prog-track" style="width:110px;height:7px;" role="progressbar" aria-valuemin="0" aria-valuemax="2" aria-valuenow="0">
+<div><div class="biry-count-meta" id="j-b-limit-line">/ 4 this month</div><div class="biry-status-copy" id="j-b-rem">4 remaining</div></div>
+<div class="biry-progress-wrap">
+<div class="j-prog-track" id="j-b-progress-track" style="width:120px;height:7px;" role="progressbar" aria-valuemin="0" aria-valuemax="4" aria-valuenow="0" aria-label="Biryani monthly progress">
 <div class="j-prog-fill" id="j-b-bar" style="width:0%;background:#f59e0b;"></div>
 </div>
+<div class="biry-progress-text" id="j-b-progress-text">0% used</div>
 </div>
 </div>
 <div class="biry-row" id="biry-log-row" onclick="jLogBiryani()"
 role="button" tabindex="0" aria-label="Log a biryani"
 onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();jLogBiryani()}">
-<div style="font-size:26px;" aria-hidden="true">🍛</div>
-<div><div style="font-size:13px;font-weight:900;color:#92400e;">Log Biryani</div><div style="font-size:11px;color:#b45309;">Max 2/month — Enjoy every bite!</div></div>
-<div style="margin-left:auto;"><div class="b-slots-row" id="j-b-slots" aria-label="Biryani slots"><div class="b-slot" id="b-slot-1"></div><div class="b-slot" id="b-slot-2"></div></div></div>
+<div style="font-size:26px;" aria-hidden="true">&#127835;</div>
+<div><div style="font-size:13px;font-weight:900;color:#92400e;">Log Biryani</div><div class="biry-subcopy" id="j-b-log-sub">Balanced treat, up to 4/month</div></div>
+<div style="margin-left:auto;"><div class="b-slots-row" id="j-b-slots" aria-label="Biryani slots"></div></div>
 </div>
-<div style="font-size:11px;color:#92400e;padding:3px 2px;margin-top:3px;" aria-live="polite">Eaten: <strong id="j-b-eaten">0</strong> / 2</div>
+<div style="font-size:11px;color:#92400e;padding:3px 2px;margin-top:4px;" aria-live="polite">Eaten: <strong id="j-b-eaten">0</strong> / <strong id="j-b-limit-inline">4</strong></div>
 </div>
 <div class="jnk-bottom-grid" role="region" aria-label="Junk food analytics">
 <div class="jnk-analytics-card">
@@ -6040,7 +6051,7 @@ const JNK_DONUT_COLORS=['#8b5cf6','#f97316','#ec4899','#06b6d4','#10b981','#f59e
 const DESSERT_IDS=['bakery'];
 const DRINK_IDS=['drinks'];
 const J_SUGAR_LIMIT=50;
-const J_BIRY_LIMIT=2;
+const J_BIRY_LIMIT=4;
 
 /* ═══════════════════════════════════════════════════
    JUNK FOOD LOGIC
@@ -6533,7 +6544,10 @@ function openBiryaniConfirm(){
   const curMk=jBCurrentKey();
   const cnt=jBCount(curMk);
   const body=document.getElementById('biryani-confirm-body');
-  if(body)body.textContent='You have eaten '+cnt+' of 2 allowed this month.';
+  if(body){
+    const remaining=Math.max(0,J_BIRY_LIMIT-cnt);
+    body.textContent='You have eaten '+cnt+' of '+J_BIRY_LIMIT+' allowed this month. '+(remaining>0?remaining+' left after this check.':'Monthly cap reached.');
+  }
   const modal=document.getElementById('biryani-confirm-modal');
   if(modal){modal.classList.add('open');if(window.syncModalScrollLock)window.syncModalScrollLock();const btn=modal.querySelector('button');if(btn)btn.focus();}
 }
@@ -6562,9 +6576,10 @@ async function confirmBiryaniLog(){
     await save();
     jRenderBiryani();
     jRenderLogs();
+    const remaining=Math.max(0,J_BIRY_LIMIT-entry.count);
     showToast(
-      entry.count>=J_BIRY_LIMIT?'Biryani limit reached for this month!':'Biryani logged! Enjoy every grain.',
-      entry.count>=J_BIRY_LIMIT?'yt':'gt'
+      remaining===0?'Biryani monthly cap reached. Nice, stop here for this month.':'Biryani logged. '+remaining+' left this month.',
+      remaining===0?'yt':'gt'
     );
   }finally{
     biryaniLogInFlight=false;
@@ -6576,7 +6591,7 @@ function jLogBiryani(){
   const viewMk=jBKey();
   if(viewMk!==curMk){showToast('Switch to current month to log biryani','yt');return;}
   const cnt=jBCount(curMk);
-  if(cnt>=J_BIRY_LIMIT){showToast('Max '+J_BIRY_LIMIT+' biryanis this month!','rt');return;}
+  if(cnt>=J_BIRY_LIMIT){showToast('Monthly biryani cap reached ('+cnt+'/'+J_BIRY_LIMIT+').','rt');return;}
   openBiryaniConfirm();
 }
 function jDeleteBiryani(mKey,entryId){
@@ -6601,43 +6616,73 @@ function jChangeBMonth(d){
   state.jBViewM=m;state.jBViewY=y;
   jRenderBiryani();
 }
+function jBiryaniStatusText(count){
+  const remaining=Math.max(0,J_BIRY_LIMIT-count);
+  if(count<=0)return J_BIRY_LIMIT+' remaining';
+  if(remaining===0)return 'Monthly cap reached';
+  if(remaining===1)return '1 left this month';
+  return remaining+' remaining';
+}
+function jBiryaniBarColor(count){
+  const ratio=count/J_BIRY_LIMIT;
+  if(ratio>=1)return '#ef4444';
+  if(ratio>=0.75)return '#f97316';
+  return '#f59e0b';
+}
 function jRenderBiryani(){
   const viewMk=jBKey();
   const curMk=jBCurrentKey();
   const cnt=jBCount(viewMk);
   const curCnt=jBCount(curMk);
-  const rem=J_BIRY_LIMIT-cnt;
   const vm=state.jBViewM||0;
   const vy=state.jBViewY||new Date().getFullYear();
+  const pct=Math.min(100,Math.round((cnt/J_BIRY_LIMIT)*100));
+  const remaining=Math.max(0,J_BIRY_LIMIT-cnt);
   const bm=document.getElementById('j-b-month');
   const bc=document.getElementById('j-b-count');
   const be=document.getElementById('j-b-eaten');
   const br=document.getElementById('j-b-rem');
   const bb=document.getElementById('j-b-bar');
   const row=document.getElementById('biry-log-row');
-  const slot1=document.getElementById('b-slot-1');
-  const slot2=document.getElementById('b-slot-2');
+  const slots=document.getElementById('j-b-slots');
+  const note=document.getElementById('j-b-limit-note');
+  const limitLine=document.getElementById('j-b-limit-line');
+  const limitInline=document.getElementById('j-b-limit-inline');
+  const logSub=document.getElementById('j-b-log-sub');
+  const progressText=document.getElementById('j-b-progress-text');
+  const progressTrack=document.getElementById('j-b-progress-track');
   if(bm)bm.textContent=MONTHS[vm]+' '+vy;
   if(bc)bc.textContent=String(cnt);
   if(be)be.textContent=String(cnt);
-  if(br)br.textContent=rem>0?rem+' remaining':'Limit reached';
-  if(bb){
-    bb.style.width=Math.min(100,(cnt/J_BIRY_LIMIT)*100)+'%';
-    bb.style.background=cnt>=J_BIRY_LIMIT?'#ef4444':'#f59e0b';
-    const track=bb.closest('[role="progressbar"]');
-    if(track)track.setAttribute('aria-valuenow',cnt);
+  if(br)br.textContent=jBiryaniStatusText(cnt);
+  if(note)note.textContent='Monthly biryani limit: '+J_BIRY_LIMIT+' - flexible, but still mindful.';
+  if(limitLine)limitLine.textContent='/ '+J_BIRY_LIMIT+' this month';
+  if(limitInline)limitInline.textContent=String(J_BIRY_LIMIT);
+  if(logSub)logSub.textContent=remaining>0?'Balanced treat - '+remaining+' left this month':'Monthly cap reached - resume next month';
+  if(progressText)progressText.textContent=pct+'% used';
+  if(bb)bb.style.width=pct+'%';
+  if(bb)bb.style.background=jBiryaniBarColor(cnt);
+  if(progressTrack){
+    progressTrack.setAttribute('aria-valuemax',J_BIRY_LIMIT);
+    progressTrack.setAttribute('aria-valuenow',Math.min(cnt,J_BIRY_LIMIT));
+    progressTrack.setAttribute('aria-label','Biryani monthly progress, '+cnt+' of '+J_BIRY_LIMIT+' used');
+  }
+  if(slots){
+    slots.innerHTML='';
+    for(let i=1;i<=J_BIRY_LIMIT;i++){
+      const slot=document.createElement('div');
+      slot.className='b-slot'+(cnt>=i?(cnt>=J_BIRY_LIMIT?' limit':' filled'):'');
+      slot.setAttribute('aria-hidden','true');
+      slots.appendChild(slot);
+    }
   }
   const isCurrent=viewMk===curMk;
-  if(slot1&&slot2){
-    slot1.className='b-slot'+(cnt>=1?(cnt>=J_BIRY_LIMIT?' limit':' filled'):'');
-    slot2.className='b-slot'+(cnt>=2?(cnt>=J_BIRY_LIMIT?' limit':' filled'):'');
-  }
   if(row){
     const atLimit=isCurrent&&curCnt>=J_BIRY_LIMIT;
     if(!isCurrent||atLimit){
       row.style.opacity='0.45';row.style.pointerEvents='none';
       row.setAttribute('aria-disabled','true');
-      row.title=!isCurrent?'Switch to current month to log':'Monthly limit reached';
+      row.title=!isCurrent?'Switch to current month to log':'Monthly biryani cap reached';
     }else{
       row.style.opacity='1';row.style.pointerEvents='auto';
       row.removeAttribute('aria-disabled');row.title='';
@@ -7872,6 +7917,14 @@ function buildRemindersPage(){
     '</div>'+
     '</div>'+
 
+    // Exact date field
+    '<div>'+ 
+    '<label style="display:block;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:5px;" for="r-date">Reminder date (optional)</label>'+ 
+    '<input id="r-date" type="date" aria-label="Reminder date" '+
+    'style="width:100%;font-size:16px;padding:10px 14px;border:1.5px solid rgba(200,195,240,0.7);border-radius:var(--r-pill);background:rgba(255,255,255,0.7);color:var(--text-primary);outline:none;font-family:var(--font);box-sizing:border-box;"/>'+ 
+    '<div style="font-size:10px;color:var(--text-muted);margin:5px 4px 0;">Choose a date for a one-day reminder, or leave empty to repeat by days.</div>'+ 
+    '</div>'+ 
+
     // Days picker
     '<div>'+
     '<label style="display:block;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">Repeat on days</label>'+
@@ -7946,6 +7999,22 @@ function fireNotification(title,body,icon){
   }
 }
 
+function reminderHasDate(r){
+  return !!(r&&typeof r.date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(r.date));
+}
+function reminderAppliesToday(r,day,date){
+  if(reminderHasDate(r))return r.date===date;
+  return Array.isArray(r.days)&&r.days.includes(day);
+}
+function reminderDateLabel(dateKey){
+  if(!dateKey)return'';
+  if(dateKey===todayKey())return'Today';
+  const d=new Date();d.setDate(d.getDate()+1);
+  const tomorrow=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  if(dateKey===tomorrow)return'Tomorrow';
+  return formatDateFull(dateKey);
+}
+
 /* FIX 22: fromTimer parameter controls _startTime update */
 function checkReminders(fromTimer){
   const now=new Date();
@@ -7968,7 +8037,7 @@ function checkReminders(fromTimer){
   const deletedIds=new Set(state.deletedReminderIds||[]);
   (state.reminders||[]).forEach(r=>{
     if(!r.enabled)return;
-    if(!r.days.includes(day))return;
+    if(!reminderAppliesToday(r,day,date))return;
     if(r.time!==time)return;
     if(deletedIds.has(r.id))return;
     const key=r.id+'_'+date+'_'+r.time;
@@ -8042,6 +8111,8 @@ function buildPresetChips(){
       if(rm)rm.value=p.msg;
       if(rtime)rtime.value=p.time;
       if(ri)ri.value=p.icon;
+      const rd=document.getElementById('r-date');
+      if(rd)rd.value='';
       selDays=p.days.slice();
       buildDaysPicker();
       showToast('Preset loaded');
@@ -8076,9 +8147,10 @@ function renderReminderList(){
   }
 
   rems.forEach(({r,idx})=>{
-    const allD=r.days.length===7;
-    const isWD=([1,2,3,4,5].every(d=>r.days.includes(d))&&r.days.length===5);
-    const dL=allD?'Every day':isWD?'Weekdays':r.days.slice().sort((a,b)=>a-b).map(d=>DAY_NAMES[d]).join(', ');
+    const days=Array.isArray(r.days)?r.days:[];
+    const allD=days.length===7;
+    const isWD=([1,2,3,4,5].every(d=>days.includes(d))&&days.length===5);
+    const dL=reminderHasDate(r)?reminderDateLabel(r.date):(allD?'Every day':isWD?'Weekdays':days.slice().sort((a,b)=>a-b).map(d=>DAY_NAMES[d]).join(', '));
     const hh=+r.time.split(':')[0];
     const mm=r.time.split(':')[1];
     const tL=((hh%12)||12)+':'+mm+' '+(hh<12?'AM':'PM');
@@ -8219,10 +8291,12 @@ function editReminder(i){
   const msg=document.getElementById('r-msg');
   const time=document.getElementById('r-time');
   const icon=document.getElementById('r-icon');
+  const date=document.getElementById('r-date');
   if(title)title.value=r.title||'';
   if(msg)msg.value=r.msg||'';
   if(time)time.value=r.time||'08:00';
   if(icon)icon.value=r.icon||'🔔';
+  if(date)date.value=reminderHasDate(r)?r.date:'';
   selDays=Array.isArray(r.days)?r.days.slice():[0,1,2,3,4,5,6];
   buildDaysPicker();
   updateReminderFormMode();
@@ -8236,10 +8310,12 @@ function cancelReminderEdit(){
   const msg=document.getElementById('r-msg');
   const time=document.getElementById('r-time');
   const icon=document.getElementById('r-icon');
+  const date=document.getElementById('r-date');
   if(title)title.value='';
   if(msg)msg.value='';
   if(time)time.value='08:00';
   if(icon)icon.selectedIndex=0;
+  if(date)date.value='';
   selDays=[0,1,2,3,4,5,6];
   buildDaysPicker();
   updateReminderFormMode();
@@ -8285,17 +8361,21 @@ function addReminder(){
   const msg=document.getElementById('r-msg');
   const time=document.getElementById('r-time');
   const icon=document.getElementById('r-icon');
+  const date=document.getElementById('r-date');
   const titleVal=title?title.value.trim():'';
   const timeVal=time?time.value:'';
+  const dateVal=date?date.value:'';
   if(!titleVal){showToast('Enter a title');return;}
   if(titleVal.length>60){showToast('Title too long (max 60 characters)','yt');return;}
   if(!validateTimeString(timeVal)){showToast('Invalid time format','rt');return;}
-  if(!selDays.length){showToast('Select at least one day');return;}
+  if(dateVal&&!/^\d{4}-\d{2}-\d{2}$/.test(dateVal)){showToast('Invalid reminder date','rt');return;}
+  if(!dateVal&&!selDays.length){showToast('Select at least one day or choose a date');return;}
   /* FIX 16 */
   const isDuplicate=(state.reminders||[]).some(r=>
     r.id!==reminderEditingId&&
     r.title.toLowerCase().trim()===titleVal.toLowerCase().trim()&&
-    r.time===timeVal
+    r.time===timeVal&&
+    (r.date||'')===dateVal
   );
   if(isDuplicate){
     showToast('A reminder with this title and time already exists','yt');
@@ -8310,13 +8390,14 @@ function addReminder(){
     existing.msg=msg?msg.value.trim():'';
     existing.time=timeVal;
     existing.icon=icon?icon.value:'🔔';
+    existing.date=dateVal;
     existing.days=selDays.slice();
     existing.enabled=true;
   }else{
     state.reminders.push({
     id:genId(),title:titleVal,msg:msg?msg.value.trim():'',
     time:timeVal,icon:icon?icon.value:'🔔',
-    days:selDays.slice(),enabled:true
+    date:dateVal,days:selDays.slice(),enabled:true
   });
   }
   const addedReminder=state.reminders[state.reminders.length-1];
@@ -8339,12 +8420,13 @@ renderReminderList();renderHomeReminders();
   if(msg)msg.value='';
   if(time)time.value='08:00';
   if(icon)icon.selectedIndex=0;
+  if(date)date.value='';
   reminderEditingId=null;
   updateReminderFormMode();
   _remindersPageInitialized=false;
   selDays=[0,1,2,3,4,5,6];
   buildDaysPicker();
-  showToast(wasEditing?'Reminder updated!':'Reminder set for '+formatTime12(timeVal)+'!','gt');
+  showToast(wasEditing?'Reminder updated!':'Reminder set for '+(dateVal?reminderDateLabel(dateVal)+' at ':'')+formatTime12(timeVal)+'!','gt');
 }
 
 /* ═══════════════════════════════════════════════════
@@ -8524,67 +8606,44 @@ function renderHomeReminders(){
   const list=document.getElementById('home-rem-list');
   const count=document.getElementById('home-rem-count');
   if(!list)return;
-
+  if(typeof notesSweepExpiredReminders==='function')notesSweepExpiredReminders();
   const now=new Date();
   const curMin=now.getHours()*60+now.getMinutes();
   const today=now.getDay();
+  const todayKeyStr=todayKey();
   const deleted=new Set(state.deletedReminderIds||[]);
-  const active=(state.reminders||[]).filter(r=>
-    r.enabled&&r.days.includes(today)&&!deleted.has(r.id)
-  );
-
+  const habitItems=(state.reminders||[]).filter(r=>r.enabled&&reminderAppliesToday(r,today,todayKeyStr)&&!deleted.has(r.id)).map(r=>({type:'habit',id:r.id,title:r.title||'',msg:r.msg||'',time:r.time||'',icon:r.icon||'\uD83D\uDD14',date:r.date||''}));
+  const noteItems=(state.notes||[]).map(n=>({note:n,info:notesGetReminderInfo(n)})).filter(x=>x.info.date===todayKeyStr&&x.info.status!=='completed').map(x=>({type:'note',id:x.note.id,title:x.note.title||'Untitled note',msg:'Note reminder',time:x.info.time||'',icon:'\uD83D\uDCDD'}));
+  const active=habitItems.concat(noteItems).sort((a,b)=>(a.time||'99:99').localeCompare(b.time||'99:99'));
   if(count)count.textContent=String(active.length);
   list.innerHTML='';
-
-  if(!active.length){
-    list.innerHTML='<div class="home-rem-empty">No reminders today.</div>';
-    return;
-  }
-
-  active.slice().sort((a,b)=>a.time.localeCompare(b.time)).forEach(r=>{
-    const[hh,mm]=r.time.split(':').map(Number);
-    const remMin=hh*60+mm;
-    const diff=remMin-curMin;
-    const h12=(hh%12)||12;
-    const timeStr=h12+':'+String(mm).padStart(2,'0')+' '+(hh<12?'AM':'PM');
-
-    let sc='upcoming',st='';
-    if(diff<0){sc='passed';st='Passed';}
-    else if(diff===0){sc='upcoming';st='Now!';}
-    else if(diff<=60){sc='upcoming';st='In '+diff+'m';}
-    else{sc='upcoming';st=timeStr;}
-
+  if(!active.length){list.innerHTML='<div class="home-rem-empty">No reminders today.</div>';return;}
+  active.forEach(r=>{
+    let timeStr='Today',sc='upcoming',st='Today';
+    if(/^\d{2}:\d{2}$/.test(r.time||'')){
+      const parts=r.time.split(':').map(Number);const hh=parts[0],mm=parts[1];
+      const remMin=hh*60+mm;const diff=remMin-curMin;
+      timeStr=notesFormatReminderTime(r.time);
+      if(diff<0){sc='passed';st='Passed';}
+      else if(diff===0){st='Now!';}
+      else if(diff<=60){st='In '+diff+'m';}
+      else{st=timeStr;}
+    }
     const row=document.createElement('div');
-    row.className='home-rem-item';
+    row.className='home-rem-item'+(r.type==='note'?' is-note-reminder':'');
     row.setAttribute('role','listitem');
-
-    const iconDiv=document.createElement('div');
-    iconDiv.className='home-rem-icon';
-    iconDiv.setAttribute('aria-hidden','true');
-    iconDiv.textContent=r.icon||'🔔';
-
-    const bodyDiv=document.createElement('div');
-    bodyDiv.className='home-rem-body';
-
-    const nameDiv=document.createElement('div');
-    nameDiv.className='home-rem-name';
-    nameDiv.textContent=r.title||'';
-
-    const timeDiv=document.createElement('div');
-    timeDiv.className='home-rem-time';
-    timeDiv.textContent=timeStr+(r.msg?' · '+r.msg:'');
-
-    bodyDiv.appendChild(nameDiv);
-    bodyDiv.appendChild(timeDiv);
-
-    const statusSpan=document.createElement('span');
-    statusSpan.className='home-rem-status '+sc;
-    statusSpan.textContent=st;
-
-    row.appendChild(iconDiv);
-    row.appendChild(bodyDiv);
-    row.appendChild(statusSpan);
-    list.appendChild(row);
+    if(r.type==='note'){
+      row.tabIndex=0;row.setAttribute('aria-label','Open note '+r.title);
+      row.onclick=()=>openNoteModal(r.id);
+      row.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openNoteModal(r.id);}};
+    }
+    const iconDiv=document.createElement('div');iconDiv.className='home-rem-icon';iconDiv.setAttribute('aria-hidden','true');iconDiv.textContent=r.icon||'\uD83D\uDD14';
+    const bodyDiv=document.createElement('div');bodyDiv.className='home-rem-body';
+    const nameDiv=document.createElement('div');nameDiv.className='home-rem-name';nameDiv.textContent=r.title||'';
+    const timeDiv=document.createElement('div');timeDiv.className='home-rem-time';timeDiv.textContent=(r.type==='note'?(r.time?timeStr:'Today'):(timeStr+(r.msg?' - '+r.msg:'')));
+    bodyDiv.appendChild(nameDiv);bodyDiv.appendChild(timeDiv);
+    const statusSpan=document.createElement('span');statusSpan.className='home-rem-status '+sc;statusSpan.textContent=st;
+    row.appendChild(iconDiv);row.appendChild(bodyDiv);row.appendChild(statusSpan);list.appendChild(row);
   });
 }
 
@@ -9369,11 +9428,37 @@ function buildHabitItem(h,idx,total){
   }
   return row;
 }
+function getOrderedTodaySections(){
+  const sections=Array.isArray(state.sections)?state.sections:[];
+  const lateOrder=['evening','dinner','night','prep'];
+  const byId=new Map(sections.map(sec=>[sec.id,sec]));
+  const early=sections.filter(sec=>!lateOrder.includes(sec.id));
+  return early.concat(lateOrder.map(id=>byId.get(id)).filter(Boolean));
+}
+function getTodayCardSectionId(card){
+  if(!card)return'';
+  if(card.querySelector('#eve-list'))return'evening';
+  if(card.querySelector('#wt-scene'))return'water';
+  const list=card.querySelector('[id^="sec-"]');
+  return list?list.id.replace('sec-',''):'';
+}
+function normalizeTodaySectionOrder(){
+  const container=document.getElementById('today-sections');
+  if(!container||typeof getOrderedTodaySections!=='function')return;
+  const order=getOrderedTodaySections().map(s=>s.id);
+  const cards=Array.from(container.children);
+  cards.sort((a,b)=>{
+    const ai=order.indexOf(getTodayCardSectionId(a));
+    const bi=order.indexOf(getTodayCardSectionId(b));
+    return (ai<0?999:ai)-(bi<0?999:bi);
+  });
+  cards.forEach(card=>container.appendChild(card));
+}
 function buildTodaySections(preservedWaterCard){
   const container=document.getElementById('today-sections');if(!container)return;
   if(!state.habits||!state.habits.length)ensureDefaults();
   if(!state.sections||!state.sections.length)ensureDefaults();
-  state.sections.forEach(sec=>{
+  getOrderedTodaySections().forEach(sec=>{
     if(sec.tag==='special'){
       if(sec.id==='water'){
         if(preservedWaterCard){container.appendChild(preservedWaterCard);renderWater();const hw=document.getElementById('hydration-insights-wrap');if(hw)renderHydrationInsights();return;}
@@ -9393,7 +9478,7 @@ function buildTodaySections(preservedWaterCard){
     const existingSec=document.getElementById('sec-'+sec.id);
     if(existingSec){const existingCount=existingSec.querySelectorAll('.ci').length;if(existingCount!==habits.length)rebuildSection(sec.id);return;}
     const sc=document.createElement('div');
-    sc.className='sc';
+    sc.className='sc sc-section-'+sec.id;
     const secName=sanitizeHTML(sec.name||'');
     const secTag=sanitizeHTML(sec.tag||'');
     sc.innerHTML=
@@ -9423,6 +9508,7 @@ function rebuildTodaySections(){
   if(!waterCard)wtSceneInitialized=false;
   ensureDefaults();
   buildTodaySections(waterCard);
+  if(typeof normalizeTodaySectionOrder==='function')normalizeTodaySectionOrder();
   if(waterCard&&wasAnimating&&!wtPropRAF&&typeof _wtStartAnimation==='function')_wtStartAnimation();
   if(!wtIdleTmr&&prevWaterLevel>0&&!wtDone){
     wtIdleTmr=setInterval(()=>{if(state.water>0&&!wtDone&&typeof wtBubbles==='function')wtBubbles(0);},3200);
@@ -9439,10 +9525,10 @@ function rebuildSection(sectionId){
   if(!sec||sec.tag==='special')return;
   const habits=(state.habits||[]).filter(h=>h.section===sectionId).sort((a,b)=>(a.order||0)-(b.order||0));
   if(!habits.length)return;
-  const allSectionIds=(state.sections||[]).map(s=>s.id);
+  const allSectionIds=getOrderedTodaySections().map(s=>s.id);
   const secIdx=allSectionIds.indexOf(sectionId);
   const sc=document.createElement('div');
-  sc.className='sc';
+  sc.className='sc sc-section-'+sectionId;
   const secName=sanitizeHTML(sec.name||'');
   const secTag=sanitizeHTML(sec.tag||'');
   sc.innerHTML=
@@ -9459,12 +9545,13 @@ function rebuildSection(sectionId){
   }
   if(insertBefore)container.insertBefore(sc,insertBefore);
   else container.appendChild(sc);
+  if(typeof normalizeTodaySectionOrder==='function')normalizeTodaySectionOrder();
   applyChecks();
   recountTasks();
 }
 function buildEveningSection(){
   const sc=document.createElement('div');
-  sc.className='sc';
+  sc.className='sc sc-section-evening';
   const wknd=isWeekend();
   sc.innerHTML=
     '<div class="sh"><span class="si" aria-hidden="true">🌆</span><span class="st">Evening</span>'+
@@ -9693,7 +9780,7 @@ function confirmFactoryReset(){
 .notes-search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:15px;pointer-events:none;}
 .notes-section-label{display:flex;align-items:center;gap:8px;margin:10px 20px 8px;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#7C3AED;}
 .notes-section-label::after{content:'';flex:1;height:1px;background:#ddd6fe;}
-.notes-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 16px;}
+.notes-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;padding:0 16px;}
 @media(max-width:480px){.notes-grid{grid-template-columns:1fr;}}
 .note-card{background:#fff;border-radius:16px;overflow:hidden;position:relative;box-shadow:0 2px 12px rgba(124,58,237,0.07);transition:all 0.2s;display:flex;flex-direction:column;}
 .note-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(124,58,237,0.13);}
@@ -9709,6 +9796,12 @@ function confirmFactoryReset(){
 .note-card-desc{font-size:11px;color:#6b7280;line-height:1.6;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:8px;flex:1;}
 .note-tags-row{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;}
 .note-tag{font-size:9px;font-weight:600;padding:3px 9px;border-radius:999px;background:#f5f3ff;color:#7C3AED;border:1px solid #ddd6fe;}
+.note-reminder-badge{display:inline-flex;align-items:center;gap:6px;width:max-content;max-width:100%;margin:0 0 10px;padding:5px 9px;border-radius:999px;font-size:10px;font-weight:800;border:1px solid #ddd6fe;background:#f5f3ff;color:#7C3AED;}
+.note-reminder-badge.tomorrow{background:#eff6ff;color:#2563eb;border-color:#bfdbfe;}
+.note-reminder-badge.upcoming{background:#f8fafc;color:#64748b;border-color:#e2e8f0;}
+.note-reminder-badge.past{background:#f3f4f6;color:#6b7280;border-color:#e5e7eb;}
+.notes-form-row{display:grid;grid-template-columns:1fr 140px;gap:10px;align-items:end;}
+@media(max-width:480px){.notes-form-row{grid-template-columns:1fr;gap:0;}}
 .note-card-footer{display:flex;align-items:center;justify-content:space-between;margin-top:auto;}
 .note-card-date{font-size:10px;color:#9ca3af;font-weight:500;}
 .note-card-btns{display:flex;gap:6px;}
@@ -9752,6 +9845,9 @@ body.theme-night .notes-search-input{background:rgba(26,22,64,0.7);border-color:
 body.theme-night .notes-modal-sheet{background:#1a1640;}
 body.theme-night .notes-modal-title{color:#e0e7ff;}
 body.theme-night .notes-form-input,body.theme-night .notes-form-textarea,body.theme-night .notes-form-select{background:rgba(26,22,64,0.7);border-color:rgba(139,92,246,0.2);color:#e0e7ff;}
+body.theme-night .notes-tags-input-wrap{background:rgba(26,22,64,0.7);border-color:rgba(139,92,246,0.2);}
+body.theme-night .notes-tag-text-input{color:#e0e7ff;}
+body.theme-night .note-reminder-badge{background:rgba(139,92,246,0.12);border-color:rgba(139,92,246,0.24);color:#c4b5fd;}
 body.theme-night .notes-stats-row{background:rgba(26,22,64,0.95);}
 `;
   document.head.appendChild(s);
@@ -9789,6 +9885,41 @@ function ensureNotes(){
   if(!Array.isArray(state.notes))state.notes=[];
   if(!Array.isArray(state.deletedNotes))state.deletedNotes=[];
   if(!state.notesUpdatedAt)state.notesUpdatedAt=0;
+}
+
+function notesDateOffsetKey(days){
+  const d=new Date();d.setDate(d.getDate()+days);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function notesFormatReminderTime(time){
+  if(!/^\d{2}:\d{2}$/.test(time||''))return'';
+  const parts=time.split(':').map(Number);const hh=parts[0],mm=parts[1];
+  return ((hh%12)||12)+':'+String(mm).padStart(2,'0')+' '+(hh<12?'AM':'PM');
+}
+function notesGetReminderInfo(n){
+  const r=(n&&typeof n.reminder==='object'&&n.reminder)?n.reminder:{};
+  return{date:n.reminderDate||r.date||'',time:n.reminderTime||r.time||'',status:n.reminderStatus||r.status||'active',recurrence:n.reminderRecurrence||r.recurrence||null,completedAt:n.reminderCompletedAt||r.completedAt||null};
+}
+function notesBuildReminder(date,time){
+  if(!date)return null;
+  const isPast=date<todayKey();
+  return{date,time:time||'',status:isPast?'completed':'active',completedAt:isPast?todayKey():null,recurrence:null};
+}
+function notesReminderBadgeHTML(n){
+  const info=notesGetReminderInfo(n);if(!info.date)return'';
+  const today=todayKey();const tomorrow=notesDateOffsetKey(1);
+  let label='Upcoming',cls='upcoming';
+  if(info.status==='completed'||info.date<today){label='Past';cls='past';}
+  else if(info.date===today){label='Today';cls='today';}
+  else if(info.date===tomorrow){label='Tomorrow';cls='tomorrow';}
+  const time=notesFormatReminderTime(info.time);
+  return '<div class="note-reminder-badge '+cls+'"><span aria-hidden="true">&#128221;</span><span>'+label+(time?' - '+time:'')+'</span></div>';
+}
+function notesSweepExpiredReminders(){
+  ensureNotes();const today=todayKey();let changed=false;
+  (state.notes||[]).forEach(n=>{const info=notesGetReminderInfo(n);if(info.date&&info.date<today&&info.status!=='completed'&&!info.recurrence){n.reminderDate=info.date;n.reminderTime=info.time;n.reminderStatus='completed';n.reminderCompletedAt=today;n.reminder={date:info.date,time:info.time,status:'completed',completedAt:today,recurrence:info.recurrence||null};changed=true;}});
+  if(changed){state.notesUpdatedAt=Date.now();saveNoteDebounced();}
+  return changed;
 }
 
 /* ═══════════════════════════════════════════════════
@@ -9914,6 +10045,7 @@ function buildNoteCardHTML(n,isDeleted){
   const pinBadge=n.pinned?'<span class="note-pin-badge">📌 Pin</span>':'';
   const descHtml=n.desc?'<div class="note-card-desc">'+sanitizeHTML(n.desc)+'</div>':'';
   const tagsHtml=tagsHTML?'<div class="note-tags-row">'+tagsHTML+'</div>':'';
+  const reminderHtml=isDeleted?'':notesReminderBadgeHTML(n);
 
   const dateLabel=isDeleted&&n.deletedAt?'Deleted '+formatDateShort(n.deletedAt):formatDateShort(n.createdAt||'');
   const cardButtons=isDeleted
@@ -9935,6 +10067,7 @@ function buildNoteCardHTML(n,isDeleted){
     '<div class="note-card-title">'+sanitizeHTML(n.title||'Untitled')+'</div>'+
     descHtml+
     tagsHtml+
+    reminderHtml+
     '<div class="note-card-footer">'+
     '<span class="note-card-date">'+dateLabel+'</span>'+
     '<div class="note-card-btns">'+
@@ -9999,6 +10132,8 @@ function openNoteModal(id){
   const sec=document.getElementById('nm-section-select');
   const pin=document.getElementById('nm-pin-check');
   const fav=document.getElementById('nm-fav-check');
+  const remDate=document.getElementById('nm-reminder-date');
+  const remTime=document.getElementById('nm-reminder-time');
   const mTitle=document.getElementById('nm-modal-title');
   if(id){
     ensureNotes();
@@ -10010,6 +10145,9 @@ function openNoteModal(id){
     if(sec)sec.value=n.section||'study';
     if(pin)pin.checked=!!n.pinned;
     if(fav)fav.checked=!!n.favorite;
+    const reminderInfo=notesGetReminderInfo(n);
+    if(remDate)remDate.value=reminderInfo.date||'';
+    if(remTime)remTime.value=reminderInfo.time||'';
     notesTags=[...(n.tags||[])];
   }else{
     if(mTitle)mTitle.textContent='New Note';
@@ -10018,6 +10156,8 @@ function openNoteModal(id){
     if(sec)sec.value=(notesFilter!=='all'&&notesFilter!=='bin')?notesFilter:'study';
     if(pin)pin.checked=false;
     if(fav)fav.checked=false;
+    if(remDate)remDate.value='';
+    if(remTime)remTime.value='';
   }
   _notesRenderTagPills();
   if(modal){
@@ -10073,6 +10213,16 @@ function _ensureNoteModal(){
     '<div class="notes-tags-input-wrap" id="nm-tags-wrap" onclick="document.getElementById(\'nm-tag-input\').focus()">'+
     '<div id="nm-tag-pills"></div>'+
     '<input class="notes-tag-text-input" id="nm-tag-input" placeholder="Add tag, press Enter..." maxlength="20" onkeydown="notesTagKeydown(event)"/>'+
+    '</div>'+
+    '</div>'+
+    '<div class="notes-form-row">'+
+    '<div class="notes-form-field">'+
+    '<label class="notes-form-label" for="nm-reminder-date">Reminder Date</label>'+
+    '<input class="notes-form-input" id="nm-reminder-date" type="date"/>'+
+    '</div>'+
+    '<div class="notes-form-field">'+
+    '<label class="notes-form-label" for="nm-reminder-time">Time</label>'+
+    '<input class="notes-form-input" id="nm-reminder-time" type="time"/>'+
     '</div>'+
     '</div>'+
     '<div class="notes-toggle-row">'+
@@ -10133,15 +10283,21 @@ async function saveNote(){
   const secEl=document.getElementById('nm-section-select');
   const pinEl=document.getElementById('nm-pin-check');
   const favEl=document.getElementById('nm-fav-check');
+  const remDateEl=document.getElementById('nm-reminder-date');
+  const remTimeEl=document.getElementById('nm-reminder-time');
+  const reminderDate=remDateEl?remDateEl.value:'';
+  const reminderTime=remTimeEl?remTimeEl.value:'';
   const title=titleEl?titleEl.value.trim():'';
   if(!title){showToast('Please enter a title','yt');if(titleEl)titleEl.focus();return;}
   if(title.length>80){showToast('Title too long (max 80 chars)','yt');return;}
+  if(reminderTime&&!reminderDate){showToast('Choose a reminder date first','yt');if(remDateEl)remDateEl.focus();return;}
   if(!_firebaseLoaded){showToast('Firebase still connecting - try again in a moment','yt');return;}
   ensureNotes();
   const prevNotes=state.notes.slice();
   const prevDeletedNotes=state.deletedNotes.slice();
   const prevUpdatedAt=state.notesUpdatedAt||0;
   let isNewNote=false;
+  const reminder=notesBuildReminder(reminderDate,reminderTime);
   if(notesEditingId){
     const n=state.notes.find(x=>x.id===notesEditingId);
     if(n){
@@ -10151,6 +10307,7 @@ async function saveNote(){
       n.pinned=pinEl?pinEl.checked:false;
       n.favorite=favEl?favEl.checked:false;
       n.tags=[...notesTags];
+      if(reminder){n.reminderDate=reminder.date;n.reminderTime=reminder.time;n.reminderStatus=reminder.status;n.reminderCompletedAt=reminder.completedAt;n.reminder=reminder;}else{delete n.reminderDate;delete n.reminderTime;delete n.reminderStatus;delete n.reminderCompletedAt;delete n.reminderRecurrence;delete n.reminder;}
       n.updatedAt=todayKey();
     }
   }else{
@@ -10162,6 +10319,7 @@ async function saveNote(){
       tags:[...notesTags],
       pinned:pinEl?pinEl.checked:false,
       favorite:favEl?favEl.checked:false,
+      ...(reminder?{reminderDate:reminder.date,reminderTime:reminder.time,reminderStatus:reminder.status,reminderCompletedAt:reminder.completedAt,reminder}:{}),
       createdAt:todayKey(),
       updatedAt:todayKey()
     });
@@ -10178,6 +10336,7 @@ async function saveNote(){
   }
   closeNoteModal();
   renderNotes();
+  if(typeof renderHomeReminders==='function')renderHomeReminders();
   showToast(isNewNote?'Note saved to Firebase!':'Note updated in Firebase!','gt');
   if(isNewNote&&typeof confetti==='function')confetti();
 }
@@ -10207,6 +10366,7 @@ async function deleteNote(id){
     return;
   }
   renderNotes();
+  if(typeof renderHomeReminders==='function')renderHomeReminders();
   showToast('Moved to bin');
 }
 async function restoreNote(id){
@@ -10230,6 +10390,7 @@ async function restoreNote(id){
     return;
   }
   renderNotes();
+  if(typeof renderHomeReminders==='function')renderHomeReminders();
   showToast('Note restored','gt');
 }
 async function permanentlyDeleteNote(id){
@@ -10248,6 +10409,7 @@ async function permanentlyDeleteNote(id){
     return;
   }
   renderNotes();
+  if(typeof renderHomeReminders==='function')renderHomeReminders();
   showToast('Note permanently deleted');
 }
 async function notesTogglePin(id){
@@ -10350,6 +10512,7 @@ function startNotesSync(){
       });
       state.notesUpdatedAt=remote.notesUpdatedAt;
       if(notesPageBuilt)renderNotes();
+      if(typeof renderHomeReminders==='function')renderHomeReminders();
     }finally{
       _notesApplyingRemote=false;
     }
@@ -11013,6 +11176,3 @@ Please enable JavaScript in your browser settings.
 </div><!-- /.app-wrapper -->
 </body>
 </html>
-
-
-
