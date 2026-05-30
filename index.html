@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
@@ -431,7 +431,7 @@ nav,.stats-banner,.weekly-filter-row,.wt-glasses-row,.ct-tag-row,.jnk-cat-grid,.
 .icon-picker-mode-title{font-size:12px;font-weight:700;color:var(--text-primary);}
 .icon-picker-mode-sub{font-size:10px;font-weight:500;color:var(--text-muted);margin-top:2px;}
 .icon-emoji-panel{display:none;}.icon-emoji-panel.active{display:block;}
-.icon-upload-panel{display:none;}.icon-upload-panel.active{display:block;}
+.icon-upload-panel,#ipm-upload{display:none!important;}.icon-upload-panel.active{display:none!important;}
 .icon-emoji-grid{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;}
 .icon-emoji-btn{width:44px;height:44px;border-radius:var(--r-sm);border:1.5px solid #e2e8f0;background:#fff;font-size:26px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;}
 .icon-emoji-btn:hover{border-color:var(--purple-400);background:var(--purple-50);transform:scale(1.1);}
@@ -891,7 +891,7 @@ button:focus-visible,[role="button"]:focus-visible,[role="checkbox"]:focus-visib
 <div class="icon-picker-sheet" id="icon-picker-sheet">
 <div class="icon-picker-handle" aria-hidden="true"></div>
 <div class="icon-picker-title">Choose Icon Style</div>
-<div class="icon-picker-sub">Pick an emoji or upload your own image</div>
+<div class="icon-picker-sub">Pick an emoji icon</div>
 <div class="icon-picker-modes">
 <div class="icon-picker-mode active" id="ipm-emoji" onclick="switchIconMode('emoji')" role="button" tabindex="0" aria-label="Use emoji mode" aria-pressed="true">
 <div class="icon-picker-mode-icon" aria-hidden="true">😊</div>
@@ -1389,6 +1389,7 @@ function defaultState(){
     ctLastCompletedDate:null,
     ctDayHistory:{},ctConsecutiveRestDays:0,
     ctTasks:[],ctTasksUpdatedAt:0,
+    deletedCtTaskIds:[],
     ctLog:[],ctLogUpdatedAt:0,
     ctWeeklyHours:{},ctCareerUpdatedAt:0,
     junkLog:[],sugarLog:[],biryLog:[],
@@ -1432,6 +1433,8 @@ function ensureDefaults(){
     state.ctSkills[k]=Math.max(0,Math.min(100,state.ctSkills[k]));
   });
   if(!Array.isArray(state.ctTasks))state.ctTasks=[];
+  if(!Array.isArray(state.deletedCtTaskIds))state.deletedCtTaskIds=[];
+  state.deletedCtTaskIds=state.deletedCtTaskIds.filter(id=>typeof id==='string').slice(-300);
   if(!Array.isArray(state.ctLog))state.ctLog=[];
   if(!Array.isArray(state.junkLog))state.junkLog=[];
   if(!Array.isArray(state.sugarLog))state.sugarLog=[];
@@ -1504,6 +1507,12 @@ function ensureDefaults(){
       if(!validDateRe.test(k)||!validValues.has(state.ctDayHistory[k]))delete state.ctDayHistory[k];
     });
   }
+  state.habits.forEach(h=>{
+    if(h.customIconType==='image'||h.customIconType==='image_local'||h.customIcon==='__local_image__'||h.customIcon==='__needs_upload__'){
+      h.customIcon='';
+      h.customIconType='';
+    }
+  });
   const cutoff=new Date();cutoff.setDate(cutoff.getDate()-30);
   const cutoffKey=cutoff.getFullYear()+'-'+String(cutoff.getMonth()+1).padStart(2,'0')+'-'+String(cutoff.getDate()).padStart(2,'0');
   Object.keys(state.waterLog).forEach(k=>{if(k<cutoffKey)delete state.waterLog[k];});
@@ -2442,15 +2451,28 @@ function handleDailyReset(){
   state.lastDate=today;
 }
 
+function runDailyResetOnce(reason){
+  const today=todayKey();
+  if(state.lastDate===today)return false;
+  const firedKey=DB_KEY_MIDNIGHT+'lastFired';
+  let storedKey='';
+  try{storedKey=localStorage.getItem(firedKey)||'';}catch(e){}
+  if(storedKey===today){
+    state.lastDate=today;
+    return false;
+  }
+  handleDailyReset();
+  try{safeLocalStorageSave(firedKey,today);}catch(e){}
+  midnightResetFiredKey=today;
+  if(reason==='midnight'||reason==='visibility')saveFiredToday();
+  return true;
+}
+
 function _convertDayTasks(){
   if(!Array.isArray(state.weeklyTasks))return;
-  const dayNames=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  const todayName=dayNames[new Date().getDay()];
-  const tomorrow=new Date();tomorrow.setDate(tomorrow.getDate()+1);
-  const tomorrowName=dayNames[tomorrow.getDay()];
   state.weeklyTasks=state.weeklyTasks.map(t=>{
-    const days=wtTaskDays(t).map(d=>d==='Today'?todayName:(d==='Tomorrow'?tomorrowName:d));
-    const doneDays=wtTaskDoneDays(t).map(d=>d==='Today'?todayName:(d==='Tomorrow'?tomorrowName:d));
+    const days=wtTaskDays(t);
+    const doneDays=wtTaskDoneDays(t);
     return wtSyncTaskShape(Object.assign({},t,{days,day:days.join(','),doneDays}));
   });
   if(typeof wtNormalizeTaskStore==='function')wtNormalizeTaskStore();
@@ -2465,53 +2487,18 @@ function scheduleMidnightReset(){
   const msUntil=Math.max(0,nextMidnight-now);
   clearTimeout(scheduleMidnightReset._timer);
   scheduleMidnightReset._timer=setTimeout(async()=>{
-    const resetKey=todayKey();
-    const storedKey=localStorage.getItem(DB_KEY_MIDNIGHT+'lastFired')||'';
-    if(storedKey===resetKey){scheduleMidnightReset();return;}
-    safeLocalStorageSave(DB_KEY_MIDNIGHT+'lastFired',resetKey);
-    midnightResetFiredKey=resetKey;
-    if((state.ctStudyHrs||0)>0&&state.ctLastStudyDate){
-      if(!state.ctWeeklyHours)state.ctWeeklyHours={};
-      state.ctWeeklyHours[state.ctLastStudyDate]=Math.max(
-        state.ctWeeklyHours[state.ctLastStudyDate]||0,state.ctStudyHrs);
+    const didReset=runDailyResetOnce('midnight');
+    if(didReset){
+      wtFilter='all';wtSceneInitialized=false;jnkSelected={};jnkGridBuilt=false;
+      saveFailCount=0;ctPageBuilt=false;cachedSceneHeight=0;_lastThemeKey='';_reminderFirstCheck=true;
+      await save();
+      if(typeof refreshUI==='function')refreshUI();
+      const b=document.getElementById('banner');
+      if(b){b.classList.add('show');setTimeout(()=>b.classList.remove('show'),4000);}
+      showToast('New day started! Checklist reset.','gt');
+      _detachAllListeners();
+      startRealtimeSync();
     }
-    if(state.lastDate){
-      if(!state.ctDayHistory)state.ctDayHistory={};
-      if(!state.ctDayHistory[state.lastDate]){
-        state.ctDayHistory[state.lastDate]=state.ctDayDone
-          ?'complete':(state.ctStudyHrs||0)>0?'partial':'rest';
-      }
-    }
-    if(typeof ctEvaluateStreak==='function')ctEvaluateStreak();
-    state.checks={};state.water=0;state.pts=0;
-    state.ctDayDone=false;state.ctStudyHrs=0;
-    state.ctTodayLogged=false;state.ctLastStudyDate=null;
-    state.missedBannerDismissedDate='';
-    state.missedHighlightsShown=false;
-    state.lastResetTimestamp=Date.now();
-    state.waterUpdatedAt=state.lastResetTimestamp;
-    firedToday={};wtFilter='all';
-    wtSceneInitialized=false;jnkSelected={};jnkGridBuilt=false;
-    saveFailCount=0;ctPageBuilt=false;cachedSceneHeight=0;
-    _lastThemeKey='';_reminderFirstCheck=true;
-    _cachedLastWeekAvg=null;_cachedLastWeekAvgDate='';
-    _wtTasksLastHash='';_todayWeeklyHash='';
-    _convertDayTasks();
-    if(typeof resetDailyLangFlags==='function')resetDailyLangFlags();
-    try{if(typeof jCheckWeekReset==='function')jCheckWeekReset();}catch(e){}
-    try{if(typeof wtCheckWeekReset==='function')wtCheckWeekReset();}catch(e){}
-    /* FIX 15 */
-    if(typeof ctCleanWeeklyHours==='function')ctCleanWeeklyHours();
-    syncWeeklyGrams();
-    state.lastDate=resetKey;
-    saveFiredToday();
-    await save();
-    if(typeof refreshUI==='function')refreshUI();
-    const b=document.getElementById('banner');
-    if(b){b.classList.add('show');setTimeout(()=>b.classList.remove('show'),4000);}
-    showToast('New day started! Checklist reset.','gt');
-    _detachAllListeners();
-    startRealtimeSync();
     scheduleMidnightReset();
   },msUntil);
 }
@@ -2582,43 +2569,20 @@ document.addEventListener('visibilitychange',async()=>{
   }
   const today=todayKey();
   if(state.lastDate!==today){
-    const storedKey=localStorage.getItem(DB_KEY_MIDNIGHT+'lastFired')||'';
-    if(storedKey===today){if(typeof refreshUI==='function')refreshUI();return;}
-    if((state.ctStudyHrs||0)>0&&state.ctLastStudyDate){
-      if(!state.ctWeeklyHours)state.ctWeeklyHours={};
-      state.ctWeeklyHours[state.ctLastStudyDate]=Math.max(
-        state.ctWeeklyHours[state.ctLastStudyDate]||0,state.ctStudyHrs);
+    const didReset=runDailyResetOnce('visibility');
+    if(didReset){
+      wtFilter='all';wtSceneInitialized=false;jnkSelected={};jnkGridBuilt=false;saveFailCount=0;
+      ctPageBuilt=false;cachedSceneHeight=0;_reminderFirstCheck=true;
+      await save();
     }
-    if(state.lastDate&&state.ctDayHistory&&!state.ctDayHistory[state.lastDate]){
-      state.ctDayHistory[state.lastDate]=state.ctDayDone
-        ?'complete':(state.ctStudyHrs||0)>0?'partial':'rest';
-    }
-    if(typeof ctEvaluateStreak==='function')ctEvaluateStreak();
-    state.checks={};state.water=0;state.pts=0;
-    state.ctDayDone=false;state.ctStudyHrs=0;state.ctTodayLogged=false;
-    state.ctLastStudyDate=null;state.missedBannerDismissedDate='';
-    state.missedHighlightsShown=false;
-    state.lastResetTimestamp=Date.now();
-    state.waterUpdatedAt=state.lastResetTimestamp;
-    firedToday={};wtFilter='all';wtSceneInitialized=false;
-    jnkSelected={};jnkGridBuilt=false;saveFailCount=0;
-    ctPageBuilt=false;cachedSceneHeight=0;_reminderFirstCheck=true;
-    _cachedLastWeekAvg=null;_cachedLastWeekAvgDate='';
-    _wtTasksLastHash='';_todayWeeklyHash='';
-    _convertDayTasks();
-    if(typeof resetDailyLangFlags==='function')resetDailyLangFlags();
-    try{if(typeof jCheckWeekReset==='function')jCheckWeekReset();}catch(e){}
-    try{if(typeof wtCheckWeekReset==='function')wtCheckWeekReset();}catch(e){}
-    syncWeeklyGrams();
-    safeLocalStorageSave(DB_KEY_MIDNIGHT+'lastFired',today);
-    state.lastDate=today;
-    await save();
     if(typeof refreshUI==='function')refreshUI();
     _detachAllListeners();
     startRealtimeSync();
-    const b=document.getElementById('banner');
-    if(b){b.classList.add('show');setTimeout(()=>b.classList.remove('show'),4000);}
-    showToast('New day! Checklist reset.','gt');
+    if(didReset){
+      const b=document.getElementById('banner');
+      if(b){b.classList.add('show');setTimeout(()=>b.classList.remove('show'),4000);}
+      showToast('New day! Checklist reset.','gt');
+    }
     return;
   }
   if(state.wtReminderEnabled){
@@ -5327,6 +5291,11 @@ function ctRemoveTask(id){
   if(!Array.isArray(state.ctTasks))return;
   const t=state.ctTasks.find(x=>x.id===id);
   if(t)ctLog('Removed: '+t.text);
+  if(id){
+    if(!Array.isArray(state.deletedCtTaskIds))state.deletedCtTaskIds=[];
+    if(!state.deletedCtTaskIds.includes(id))state.deletedCtTaskIds.push(id);
+    state.deletedCtTaskIds=state.deletedCtTaskIds.slice(-300);
+  }
   state.ctTasks=state.ctTasks.filter(x=>x.id!==id);
   state.ctTasksUpdatedAt=Date.now();
   ctRenderTasks();
@@ -6190,8 +6159,8 @@ function jnkLogItems(){
   const todayK=todayKey();
   const currentCount=(state.junkLog||[]).filter(e=>e.monthKey===curMk).length;
   const totalQty=Object.values(jnkSelected).reduce((s,v)=>s+v,0);
-  if(currentCount+totalQty>=JNK_LIMIT){
-    showToast('Heads up — you are at or above the '+JNK_LIMIT+' item warning threshold!','yt');
+  if(currentCount+totalQty>JNK_LIMIT){
+    showToast('Heads up — you are above the '+JNK_LIMIT+' item monthly limit!','yt');
   }
   const todayEntries=(state.junkLog||[]).filter(e=>e.dateKey===todayK);
   if(todayEntries.length>0){
@@ -6215,7 +6184,7 @@ function jnkLogItems(){
   jnkBuildCatGrid();jnkRenderChips();debouncedSave();
   updateStatsBanner();jnkRenderAll();
   const newCount=(state.junkLog||[]).filter(e=>e.monthKey===curMk).length;
-  if(newCount>=JNK_LIMIT)showToast('Warning: '+newCount+' junk items this month!','yt');
+  if(newCount>JNK_LIMIT)showToast('Warning: '+newCount+' junk items this month!','yt');
   else showToast('Logged! Stay aware.','gt');
 }
 function jnkDeleteEntry(id){
@@ -7321,17 +7290,7 @@ function wtCheckWeekReset(){
   const doneBefore=wtCompletedDayCount(state.weeklyTasks||[]);
   state.weeklyTasksResetDate=cw;
   state.weeklyTasks=(state.weeklyTasks||[]).map(t=>wtSyncTaskShape(Object.assign({},t,{done:false,doneDays:[]})));
-  let movedCount=0;
-  state.weeklyTasks=state.weeklyTasks.map(t=>{
-    const days=wtTaskDays(t);
-    if(days.includes('Today')||days.includes('Tomorrow')){
-      movedCount++;
-      return wtSyncTaskShape(Object.assign({},t,{days:['Anytime'],day:'Anytime',doneDays:[]}));
-    }
-    return t;
-  });
   state.weeklyTasksUpdatedAt=Date.now();
-  if(movedCount>0)showToast(movedCount+' task'+(movedCount!==1?'s':'')+' moved to Anytime for new week','yt');
   if(doneBefore>0)showToast('New week! '+doneBefore+' completed tasks reset.','gt');
   _wtTasksLastHash='';
   _todayWeeklyHash='';
@@ -7666,6 +7625,12 @@ function wtSetFilter(btn,filter){
 function wtClearDone(){
   if(!confirm('Remove all completed tasks?'))return;
   wtNormalizeTaskStore();
+  const removedIds=(state.weeklyTasks||[]).filter(t=>wtIsTaskDone(t)&&t.id).map(t=>t.id);
+  if(removedIds.length){
+    if(!Array.isArray(state.deletedWeeklyTaskIds))state.deletedWeeklyTaskIds=[];
+    const deletedSet=new Set(state.deletedWeeklyTaskIds.concat(removedIds));
+    state.deletedWeeklyTaskIds=Array.from(deletedSet).slice(-200);
+  }
   state.weeklyTasks=(state.weeklyTasks||[]).filter(t=>!wtIsTaskDone(t));
   state.weeklyTasksUpdatedAt=Date.now();
   _wtTasksLastHash='';
@@ -9088,9 +9053,13 @@ function _buildIconEmojiGrid(){
 function _updateIconConfirmBtn(){
   const btn=document.getElementById('icon-picker-confirm-btn');
   if(!btn)return;
-  btn.disabled=!(selectedEmoji||uploadedImageData);
+  btn.disabled=!selectedEmoji;
 }
 function switchIconMode(mode){
+  if(mode==='upload'){
+    mode='emoji';
+    showToast('Image icons are disabled. Please choose an emoji.','yt');
+  }
   iconPickerMode=mode;
   const emPanel=document.getElementById('icon-emoji-panel');
   const upPanel=document.getElementById('icon-upload-panel');
@@ -9133,6 +9102,9 @@ function openIconPicker(habitId){
   }
 }
 function handleIconUpload(input){
+  showToast('Image icons are disabled. Please choose an emoji.','yt');
+  if(input)input.value='';
+  return;
   const file=input.files[0];
   if(!file)return;
   const ALLOWED_TYPES=['image/jpeg','image/jpg','image/png','image/gif','image/webp'];
@@ -9187,10 +9159,8 @@ function confirmIconPick(){
   const habit=(state.habits||[]).find(h=>h.id===iconPickerHabitId);if(!habit)return;
   if(iconPickerMode==='emoji'&&selectedEmoji){
     habit.customIcon=selectedEmoji;habit.customIconType='emoji';showToast('Icon updated!','gt');
-  }else if(iconPickerMode==='upload'&&uploadedImageData){
-    habit.customIcon=uploadedImageData;habit.customIconType='image';showToast('Image set! Stored on this device only.','gt');
   }else{
-    showToast('Select an emoji or upload an image first','yt');return;
+    showToast('Select an emoji first','yt');return;
   }
   state.habitsUpdatedAt=Date.now();
   _settingsNeedRebuild=true;
@@ -9577,6 +9547,7 @@ function buildEveningSection(){
    RESET TODAY
 ═══════════════════════════════════════════════════ */
 function resetToday(){
+  if(!confirm("Reset today's checklist, water, and daily points?"))return;
   state.checks={};
   state.water=0;
   state.pts=0;
@@ -10732,7 +10703,7 @@ function _requestNotifAfterSWReady(){
   if(!viewport){
     viewport=document.createElement('meta');viewport.name='viewport';head.appendChild(viewport);
   }
-  viewport.content='width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover';
+  viewport.content='width=device-width, initial-scale=1.0, viewport-fit=cover';
 })();
 
 /* ═══════════════════════════════════════════════════
@@ -11038,7 +11009,7 @@ async function init(){
     }
     migrateDataOnce();
     ensureDefaults();
-    handleDailyReset();
+    runDailyResetOnce('startup');
     _lastThemeKey='';
     applyTheme();
     _settingsNeedRebuild=true;
