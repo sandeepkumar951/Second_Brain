@@ -217,7 +217,7 @@ nav,.stats-banner,.weekly-filter-row,.wt-glasses-row,.ct-tag-row,.jnk-cat-grid,.
 @media(min-width:1024px){.st{font-size:16px;}}
 .stag{font-size:11px;font-weight:600;color:var(--text-muted);background:rgba(139,92,246,0.06);border-radius:var(--r-pill);padding:3px 10px;border:1px solid rgba(139,92,246,0.08);margin-left:auto;}
 .cl{padding:8px 12px;display:flex;flex-direction:column;gap:6px;}
-.ci{display:flex;align-items:center;gap:12px;padding:14px 16px;border:1.5px solid rgba(139,92,246,0.08);border-radius:var(--r-lg);background:rgba(255,255,255,0.7);cursor:pointer;user-select:none;transition:all var(--t-base);position:relative;overflow:hidden;min-height:52px;}
+.ci{display:grid;grid-template-columns:auto auto minmax(0,1fr) auto;align-items:center;gap:12px;padding:14px 16px;border:1.5px solid rgba(139,92,246,0.08);border-radius:18px;background:rgba(255,255,255,0.78);cursor:pointer;user-select:none;transition:all var(--t-base);position:relative;overflow:hidden;min-height:58px;}
 .ci::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(139,92,246,0.03),transparent);opacity:0;transition:opacity var(--t-fast);border-radius:inherit;}
 .ci:hover{transform:translateY(-1px);box-shadow:var(--shadow-md);border-color:rgba(139,92,246,0.15);background:rgba(255,255,255,0.90);}
 .ci:hover::before{opacity:1;}
@@ -231,18 +231,34 @@ nav,.stats-banner,.weekly-filter-row,.wt-glasses-row,.ct-tag-row,.jnk-cat-grid,.
 .ci.missed-highlight{background:rgba(239,68,68,0.06);border-color:rgba(239,68,68,0.3);}
 .ci.missed-highlight .cil{color:var(--red-600);}
 .ci.done .task-emoji{border-color:var(--green-400);background:var(--green-50);}
+.priority-badge{display:inline-flex;align-items:center;justify-content:center;gap:4px;width:max-content;padding:3px 8px;border-radius:var(--r-pill);font-size:9px;font-weight:900;letter-spacing:.3px;text-transform:uppercase;border:1px solid transparent;white-space:nowrap;line-height:1.1;}
+.priority-badge.critical{background:#fee2e2;color:#b91c1c;border-color:#fecaca;}
+.priority-badge.important{background:#fef3c7;color:#b45309;border-color:#fde68a;}
+.priority-badge.normal{background:#f0fdf4;color:#15803d;border-color:#bbf7d0;}
+.ci.priority-critical{background:linear-gradient(135deg,#fff1f2,#fff7f7);border-color:#fecaca;box-shadow:0 8px 22px rgba(220,38,38,.12);}
+.ci.priority-important{background:linear-gradient(135deg,#fffbeb,#fffaf0);border-color:#fde68a;}
+.ci.priority-critical .cil{color:#991b1b;font-weight:800;}
+.ci.priority-important .cil{color:#92400e;font-weight:750;}
+.priority-controls-card{padding:16px 18px;display:grid;gap:12px;}
+.priority-toggle-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.72);border:1px solid rgba(196,181,253,.24);font-size:13px;font-weight:800;color:#171342;}
+.priority-toggle-row input{width:18px;height:18px;accent-color:#7c3aed;}
+.priority-guide{display:grid;gap:8px;font-size:12px;color:#6b628e;}
+.priority-preview{padding:12px;border-radius:16px;border:1.5px solid rgba(139,92,246,.12);background:rgba(255,255,255,.76);}
+.priority-preview .ci{cursor:default;margin-top:4px;}
 .cb{width:24px;height:24px;border-radius:50%;border:2px solid rgba(139,92,246,0.25);flex-shrink:0;position:relative;transition:all 0.2s cubic-bezier(0.34,1.56,0.64,1);background:rgba(255,255,255,0.9);}
 .cb::after{content:'';position:absolute;top:4px;left:7px;width:6px;height:10px;border:2.5px solid #fff;border-top:none;border-left:none;transform:rotate(45deg);opacity:0;transition:opacity 0.15s;}
-.cit{flex:1;}
+.cit{min-width:0;}
 .cil{font-size:14px;font-weight:600;line-height:1.4;color:var(--text-primary);transition:color 0.2s;letter-spacing:-0.01em;}
 .cin{font-size:12px;color:var(--text-muted);margin-top:2px;line-height:1.3;}
 @media(min-width:1024px){.cil{font-size:14.5px;}}
 .task-emoji{font-size:22px;flex-shrink:0;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--purple-50);border:1.5px solid var(--purple-200);overflow:hidden;cursor:pointer;transition:all var(--t-base);}
 .task-emoji:hover{border-color:var(--purple-400);transform:scale(1.05);}
+.task-side{display:flex;align-items:center;gap:8px;justify-self:end;min-width:max-content;}
 .reorder-btns{display:flex;flex-direction:column;gap:2px;flex-shrink:0;}
 .reorder-btn{width:18px;height:14px;border:1px solid rgba(139,92,246,0.15);border-radius:5px;background:rgba(139,92,246,0.05);color:var(--text-muted);font-size:7px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;transition:all var(--t-fast);font-family:var(--font);}
 .reorder-btn:hover:not(:disabled){background:var(--purple-100);border-color:var(--purple-200);color:var(--purple-600);}
 .reorder-btn:disabled{opacity:0.2;cursor:default;}
+@media(max-width:520px){.ci{grid-template-columns:auto auto minmax(0,1fr);gap:9px;padding:12px 11px;align-items:start}.task-side{grid-column:3;justify-self:start;margin-top:4px}.priority-badge{font-size:8px;padding:3px 7px}.reorder-btns{flex-direction:row}.reorder-btn{width:20px;height:18px}}
 
 /* Premium Today weekly tasks dashboard */
 .today-weekly-premium{position:relative;margin:0 0 12px;padding:11px;overflow:hidden;border-radius:20px;background:linear-gradient(135deg,rgba(255,255,255,.94),rgba(248,245,255,.9) 48%,rgba(240,253,248,.86));border:1px solid rgba(178,148,255,.18);box-shadow:0 10px 28px rgba(85,64,160,.09),inset 0 1px 0 rgba(255,255,255,.94);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);}
@@ -252,7 +268,12 @@ nav,.stats-banner,.weekly-filter-row,.wt-glasses-row,.ct-tag-row,.jnk-cat-grid,.
 .tw-progress-card{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;padding:8px 10px;border-radius:14px;background:rgba(255,255,255,.68);border:1px solid rgba(200,181,255,.26);box-shadow:0 6px 15px rgba(72,57,125,.05),inset 0 1px 0 rgba(255,255,255,.9)}.tw-progress-label{font-size:10px;font-weight:800;color:#4c4677}.tw-progress-track{height:5px;margin-top:5px;border-radius:999px;overflow:hidden;background:linear-gradient(90deg,rgba(221,214,254,.8),rgba(220,252,231,.9));box-shadow:inset 0 1px 3px rgba(83,68,140,.10)}.tw-progress-fill{height:100%;border-radius:inherit;background:linear-gradient(90deg,#7c3aed,#a78bfa,#34d399);box-shadow:0 0 10px rgba(124,58,237,.26);transition:width .7s cubic-bezier(.2,.8,.2,1)}.tw-progress-pct{font-size:18px;font-weight:950;color:#7c3aed;line-height:1}.tw-view-btn{min-height:31px;padding:0 12px;border-radius:999px;border:1px solid rgba(167,139,250,.24);background:linear-gradient(135deg,rgba(255,255,255,.88),rgba(245,243,255,.78));color:#6d28d9;font-size:11px;font-weight:900;font-family:var(--font);box-shadow:0 7px 14px rgba(124,58,237,.09);cursor:pointer;transition:transform .2s ease,box-shadow .2s ease}.tw-view-btn:hover{transform:translateY(-1px);box-shadow:0 10px 20px rgba(124,58,237,.14)}
 .tw-days{display:grid;grid-template-columns:repeat(7,minmax(44px,1fr));gap:6px;overflow-x:auto;scrollbar-width:none;padding:1px}.tw-days::-webkit-scrollbar{display:none}.tw-day{min-width:44px;min-height:42px;border-radius:12px;border:1px solid rgba(198,181,255,.22);background:rgba(255,255,255,.58);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;box-shadow:0 5px 13px rgba(66,55,120,.05),inset 0 1px 0 rgba(255,255,255,.88);transition:all .22s ease}.tw-day-name{font-size:10px;font-weight:900;color:#171342}.tw-day-count{font-size:9px;font-weight:800;color:#6f6796}.tw-day.active{background:linear-gradient(135deg,#a78bfa,#7c3aed);border-color:rgba(255,255,255,.5);box-shadow:0 8px 19px rgba(124,58,237,.21),0 0 0 3px rgba(167,139,250,.09);transform:translateY(-1px)}.tw-day.active .tw-day-name,.tw-day.active .tw-day-count{color:#fff}
 .tw-list{display:flex;flex-direction:column;gap:6px}.tw-task{position:relative;display:grid;grid-template-columns:auto auto minmax(0,1fr) auto;gap:8px;align-items:center;min-height:58px;padding:8px 9px;border-radius:16px;border:1px solid rgba(167,139,250,.16);background:linear-gradient(135deg,rgba(255,255,255,.80),rgba(250,247,255,.68));box-shadow:0 6px 16px rgba(111,87,146,.06),inset 0 1px 0 rgba(255,255,255,.88);cursor:pointer;overflow:hidden;transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease}.tw-task::before{content:'';position:absolute;inset:0;background:linear-gradient(115deg,rgba(255,255,255,.24),rgba(196,181,253,.09) 46%,rgba(167,243,208,.14));pointer-events:none}.tw-task:hover{transform:translateY(-1px);box-shadow:0 9px 22px rgba(111,87,146,.10)}.tw-task>*{position:relative;z-index:1}.tw-check{width:30px;height:30px;border-radius:999px;border:2px solid rgba(167,139,250,.50);background:rgba(255,255,255,.72);display:flex;align-items:center;justify-content:center;box-shadow:inset 2px 2px 6px rgba(221,214,254,.16),inset -2px -2px 7px rgba(255,255,255,.9);transition:all .24s cubic-bezier(.2,.9,.2,1)}.tw-check span{width:11px;height:11px;border-radius:999px;transform:scale(.45);opacity:0;background:#8b5cf6;transition:all .2s ease}.tw-emoji{width:34px;height:34px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:19px;background:linear-gradient(145deg,#fff,#f5f3ff);border:1px solid rgba(196,181,253,.30);box-shadow:4px 6px 12px rgba(88,73,150,.07),inset 0 1px 0 rgba(255,255,255,.92)}.tw-task-title{font-size:13px;font-weight:900;line-height:1.2;color:#171342;letter-spacing:0}.tw-task-sub{font-size:10px;font-weight:650;color:#746e9b;margin-top:1px}.tw-capsules{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px}.tw-capsule{font-size:8px;font-weight:900;padding:1px 6px;border-radius:999px;background:rgba(255,255,255,.64);color:#7c3aed;border:1px solid rgba(167,139,250,.16)}.tw-actions{display:flex;align-items:center;gap:5px}.tw-edit,.tw-open{width:28px;height:28px;border-radius:999px;border:1px solid rgba(167,139,250,.22);background:rgba(255,255,255,.66);color:#7c3aed;font-size:13px;font-weight:900;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 14px rgba(124,58,237,.08);transition:all .2s ease;cursor:pointer}.tw-open{font-size:19px;color:#34a36d}.tw-edit:hover,.tw-open:hover{transform:translateY(-1px);background:#fff}.tw-task.done{border-color:rgba(34,197,94,.24);background:linear-gradient(135deg,rgba(240,253,244,.90),rgba(246,255,251,.74));box-shadow:0 8px 19px rgba(34,197,94,.09),inset 0 1px 0 rgba(255,255,255,.9)}.tw-task.done .tw-check{border-color:#22c55e;background:linear-gradient(135deg,#22c55e,#86efac);box-shadow:0 0 0 5px rgba(34,197,94,.09),0 7px 14px rgba(34,197,94,.16)}.tw-task.done .tw-check span{opacity:1;transform:rotate(45deg);background:transparent;width:9px;height:15px;border:3px solid #fff;border-top:none;border-left:none;border-radius:0}.tw-task.done .tw-task-title{text-decoration:line-through;text-decoration-thickness:2px;text-decoration-color:rgba(34,197,94,.45);color:#155e35}.tw-task.done .tw-task-sub{color:#32855b}.tw-task.done .tw-capsule{color:#15803d;background:rgba(220,252,231,.80);border-color:rgba(34,197,94,.18)}.tw-task.done .tw-edit,.tw-task.done .tw-open{color:#16a34a;border-color:rgba(34,197,94,.20)}
+.tw-task.priority-critical,.weekly-task-item.priority-critical{background:linear-gradient(135deg,#fff1f2,#fff7f7);border-color:#fecaca;box-shadow:0 8px 22px rgba(220,38,38,.12);}
+.tw-task.priority-important,.weekly-task-item.priority-important{background:linear-gradient(135deg,#fffbeb,#fffaf0);border-color:#fde68a;}
+.tw-task.priority-critical .tw-task-title,.weekly-task-item.priority-critical .weekly-task-name{color:#991b1b;}
+.tw-task.priority-important .tw-task-title,.weekly-task-item.priority-important .weekly-task-name{color:#92400e;}
 .tw-empty{padding:13px;border-radius:16px;text-align:center;background:rgba(255,255,255,.64);border:1px solid rgba(196,181,253,.22);color:#716a98;font-size:11px;font-weight:700}.tw-empty-link{color:#6d28d9;font-weight:950;cursor:pointer}
+.tw-actions{justify-content:flex-end;flex-wrap:wrap;max-width:124px}.tw-actions .priority-badge{order:-1;margin-left:auto}.weekly-task-actions{justify-content:flex-end;flex-wrap:wrap;max-width:190px}.weekly-task-actions .priority-badge{order:-1;margin-left:auto}
 .weekly-appearance{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:center;padding:12px;border-radius:18px;background:linear-gradient(135deg,rgba(245,243,255,.78),rgba(236,253,245,.62));border:1px solid rgba(196,181,253,.28)}.weekly-preview-icon{width:58px;height:58px;border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:30px;background:linear-gradient(145deg,#fff,#f5f3ff);border:1px solid rgba(167,139,250,.25);box-shadow:0 12px 24px rgba(85,64,160,.11)}.weekly-picker-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:8px}.weekly-pick-btn{height:34px;border-radius:12px;border:1px solid rgba(167,139,250,.20);background:rgba(255,255,255,.70);font-size:18px;cursor:pointer;transition:all .16s ease}.weekly-pick-btn:hover,.weekly-pick-btn.sel{transform:translateY(-1px);border-color:#8b5cf6;background:#fff;box-shadow:0 8px 18px rgba(124,58,237,.12)}#weekly-edit-modal .edit-box{max-width:460px;background:rgba(255,255,255,.88);border:1px solid rgba(255,255,255,.72);box-shadow:0 24px 70px rgba(35,25,92,.24);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);animation:weeklyModalIn .22s ease-out}#weekly-edit-modal .edit-title{font-size:18px}@keyframes weeklyModalIn{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
 @media(max-width:760px){.today-weekly-premium{padding:10px;border-radius:18px}.tw-head{grid-template-columns:auto minmax(0,1fr);gap:4px;padding:0}.tw-icon{width:34px;height:34px;border-radius:11px}.tw-icon::before{width:16px;height:18px;border-radius:6px}.tw-icon::after{left:12px;top:8px;box-shadow:7px 0 0 #fff,0 9px 0 #8b5cf6,5px 9px 0 #5eead4,10px 9px 0 #8b5cf6,0 14px 0 rgba(139,92,246,.38),5px 14px 0 rgba(52,211,153,.72),10px 14px 0 rgba(139,92,246,.38)}.tw-title{font-size:14px}.tw-sub{font-size:9.5px}.tw-title-wrap::before{top:-4px;right:8px}.tw-progress-card{grid-column:1/-1;grid-template-columns:minmax(0,1fr) auto;padding:7px 9px}.tw-progress-pct{font-size:16px}.tw-view-btn{grid-column:1/-1;width:100%;min-height:30px}.tw-days{grid-template-columns:repeat(7,46px);margin-left:-1px;margin-right:-1px}.tw-task{grid-template-columns:auto minmax(0,1fr) auto;gap:7px;min-height:54px;padding:8px}.tw-check{display:none}.tw-emoji{width:32px;height:32px;font-size:18px}.tw-task-title{font-size:12px}.tw-task-sub{display:none}.tw-open,.tw-edit{width:27px;height:27px}.tw-capsules{margin-top:3px}.weekly-picker-grid{grid-template-columns:repeat(5,1fr)}}@media(prefers-reduced-motion:reduce){.tw-spark{animation:none}.tw-task,.tw-day,.tw-view-btn,.tw-open,.tw-edit,.tw-check,.tw-progress-fill,#weekly-edit-modal .edit-box{transition:none;animation:none}}
 .summary-cards-row{display:grid;grid-template-columns:1fr;gap:14px;margin-bottom:16px;}
@@ -839,6 +860,7 @@ button:focus-visible,[role="button"]:focus-visible,[role="checkbox"]:focus-visib
 <div class="edit-field"><label class="edit-label" for="edit-habit-name">Habit name</label><input class="settings-input" id="edit-habit-name" style="width:100%;" maxlength="80"/></div>
 <div class="edit-field"><label class="edit-label" for="edit-habit-note">Sub-note</label><input class="settings-input" id="edit-habit-note" style="width:100%;" maxlength="100"/></div>
 <div class="edit-field"><label class="edit-label" for="edit-habit-section">Section</label><select class="settings-select" id="edit-habit-section" style="width:100%;"></select></div>
+<div class="edit-field"><label class="edit-label" for="edit-habit-priority">Priority</label><select class="settings-select" id="edit-habit-priority" style="width:100%;"><option value="critical">Critical</option><option value="important">Important</option><option value="normal">Normal</option></select></div>
 <div class="edit-field"><label class="edit-label" for="edit-habit-pts">Points (1-20)</label><input class="settings-pts" id="edit-habit-pts" type="number" min="1" max="20" style="width:100%;"/></div>
 <div class="edit-row"><button class="edit-cancel" onclick="closeEditModal()">Cancel</button><button class="edit-save" onclick="saveEditHabit()">Save</button></div>
 </div>
@@ -849,6 +871,7 @@ button:focus-visible,[role="button"]:focus-visible,[role="checkbox"]:focus-visib
 <div style="display:flex;flex-direction:column;gap:10px;">
 <div><label class="edit-label" for="wet-name">Task name</label><input class="settings-input" id="wet-name" style="width:100%;" maxlength="80"/></div>
 <div><label class="edit-label" for="wet-note">Sub-note</label><input class="settings-input" id="wet-note" style="width:100%;" maxlength="100"/></div>
+<div><label class="edit-label" for="wet-priority">Priority</label><select class="settings-select" id="wet-priority" style="width:100%;"><option value="critical">Critical</option><option value="important">Important</option><option value="normal">Normal</option></select></div>
 <div>
 <label class="edit-label" for="wet-emoji">Appearance</label>
 <div class="weekly-appearance">
@@ -1030,6 +1053,38 @@ let reminderEditingId=null;
 let jActiveLog='sugar';
 let editingHabitId=null;
 let settingsFilter='all';
+const PRIORITY_LEVELS={
+  critical:{label:'Critical',icon:'🔴',rank:0,cls:'critical'},
+  important:{label:'Important',icon:'🟡',rank:1,cls:'important'},
+  normal:{label:'Normal',icon:'🟢',rank:2,cls:'normal'}
+};
+function normalizePriority(value){
+  const v=String(value||'normal').toLowerCase();
+  return PRIORITY_LEVELS[v]?v:'normal';
+}
+function priorityInfo(value){
+  return PRIORITY_LEVELS[normalizePriority(value)];
+}
+function priorityBadgeHTML(value){
+  if(state&&state.showPriorityBadges===false)return'';
+  const key=normalizePriority(value);
+  const p=PRIORITY_LEVELS[key];
+  return '<span class="priority-badge '+p.cls+'">'+p.icon+' '+p.label+'</span>';
+}
+function priorityClass(value){
+  const key=normalizePriority(value);
+  return key==='normal'?'':' priority-'+key;
+}
+function comparePriority(a,b){
+  return priorityInfo(a&&a.priority).rank-priorityInfo(b&&b.priority).rank;
+}
+function sortTasksByPriorityIfNeeded(tasks){
+  const list=(tasks||[]).slice();
+  if(state&&state.autoSortByPriority){
+    list.sort((a,b)=>comparePriority(a,b)||((a.order||0)-(b.order||0)));
+  }
+  return list;
+}
 let iconPickerHabitId=null;
 let iconPickerMode='emoji';
 let selectedEmoji=null;
@@ -1376,6 +1431,8 @@ function defaultState(){
     earnedBadges:[],missedBannerDismissedDate:'',
     missedHighlightsShown:false,
     missedTasksAlertTime:'21:00',
+    autoSortByPriority:false,
+    showPriorityBadges:true,
     engStreak:0,lastEngDate:'',engReadDone:false,engSpeakDone:false,
     engSpeakStreak:0,engSpeakLastDate:'',engLearnDone:false,
     engLearnStreak:0,engLearnLastDate:'',
@@ -1428,6 +1485,8 @@ function ensureDefaults(){
   if(!state.ctSkills||typeof state.ctSkills!=='object'||Array.isArray(state.ctSkills)){
     state.ctSkills={sql:0,tools:0,proj:0,intv:0};
   }
+  state.autoSortByPriority=!!state.autoSortByPriority;
+  if(state.showPriorityBadges===undefined)state.showPriorityBadges=true;
   CT_SKILL_KEYS.forEach(k=>{
     if(typeof state.ctSkills[k]!=='number'||isNaN(state.ctSkills[k]))state.ctSkills[k]=0;
     state.ctSkills[k]=Math.max(0,Math.min(100,state.ctSkills[k]));
@@ -1447,6 +1506,8 @@ function ensureDefaults(){
   const validSectionIds=new Set(state.sections.map(s=>s.id));
   state.habits=state.habits.filter(h=>h&&safeConfigIdRe.test(String(h.id||''))&&validSectionIds.has(h.section));
   if(!state.habits.length)state.habits=JSON.parse(JSON.stringify(DEFAULT_HABITS));
+  state.habits.forEach(h=>{h.priority=normalizePriority(h.priority);});
+  state.weeklyTasks.forEach(t=>{t.priority=normalizePriority(t.priority);});
   if(!Array.isArray(state.earnedBadges))state.earnedBadges=[];
   if(!Array.isArray(state.deletedReminderIds))state.deletedReminderIds=[];
   if(!Array.isArray(state.deletedBiryaniEntryIds))state.deletedBiryaniEntryIds=[];
@@ -1715,6 +1776,8 @@ function buildConfigPayload(){
   return{
     habits:safeHabits,sections:state.sections||[],
     reminders:state.reminders||[],
+    autoSortByPriority:!!state.autoSortByPriority,
+    showPriorityBadges:state.showPriorityBadges!==false,
     updatedAt:new Date().toISOString(),
     updatedBy:_getDeviceId(),   
     habitsUpdatedAt:state.habitsUpdatedAt||0,
@@ -2008,6 +2071,7 @@ if(Array.isArray(d.weeklyTasks)){
         existing.done=existing.doneDays.length===existing.days.length;
         existing.name=rt.name||existing.name;
         existing.note=Object.prototype.hasOwnProperty.call(rt,'note')?rt.note:existing.note;
+        existing.priority=normalizePriority(rt.priority||existing.priority);
         existing.updatedAt=remoteTaskTs||remoteTs||existing.updatedAt||0;
       }else if(remoteTs===localTs){
         existing.days=wtNormalizeDays(existing.days.concat(rt.days||[]));
@@ -2058,12 +2122,15 @@ function _mergeLogArray(field,remoteDoc){
 
 function applyConfigDoc(d){
   if(!d||typeof d!=='object')return;
+  if(Object.prototype.hasOwnProperty.call(d,'autoSortByPriority'))state.autoSortByPriority=!!d.autoSortByPriority;
+  if(Object.prototype.hasOwnProperty.call(d,'showPriorityBadges'))state.showPriorityBadges=d.showPriorityBadges!==false;
   if(Array.isArray(d.habits)&&(d.habitsUpdatedAt||0)>(state.habitsUpdatedAt||0)){
     state.habits=d.habits.map(h=>({
       id:sanitizeRemoteString(h.id,40),
       section:sanitizeRemoteString(h.section,40),
       name:sanitizeRemoteString(h.name,80),
       note:sanitizeRemoteString(h.note,100),
+      priority:normalizePriority(h.priority),
       pts:sanitizeRemoteNumber(h.pts,1,20,3),
       order:sanitizeRemoteNumber(h.order,0,9999,0),
       customIcon:h.customIconType==='image_local'
@@ -2365,10 +2432,14 @@ _configListenerCb=configRef.on('value',snap=>{
     if(remote.updatedAt===_lastRemoteSavedAt&&remote.updatedBy===_getDeviceId())return;
 
     // Only apply if remote has something newer than local
+    const remoteConfigTs=Math.max(remote.remindersUpdatedAt||0,remote.habitsUpdatedAt||0,remote.sectionsUpdatedAt||0);
+    const localConfigTs=Math.max(state.remindersUpdatedAt||0,state.habitsUpdatedAt||0,state.sectionsUpdatedAt||0);
     const remoteHasNewer=
         (remote.remindersUpdatedAt||0)>(state.remindersUpdatedAt||0)||
         (remote.habitsUpdatedAt||0)>(state.habitsUpdatedAt||0)||
-        (remote.sectionsUpdatedAt||0)>(state.sectionsUpdatedAt||0);
+        (remote.sectionsUpdatedAt||0)>(state.sectionsUpdatedAt||0)||
+        (remoteConfigTs>=localConfigTs&&Object.prototype.hasOwnProperty.call(remote,'autoSortByPriority')&&!!remote.autoSortByPriority!==!!state.autoSortByPriority)||
+        (remoteConfigTs>=localConfigTs&&Object.prototype.hasOwnProperty.call(remote,'showPriorityBadges')&&(remote.showPriorityBadges!==false)!==(state.showPriorityBadges!==false));
 
     if(!remoteHasNewer)return;
 
@@ -6039,6 +6110,8 @@ function jnkChangeMonth(d){
   if(m<0){m=11;y--;}if(m>11){m=0;y++;}
   state.jnkViewMonth=m;state.jnkViewYear=y;
   jnkRenderAll();
+  jRenderBiryani();
+  jRenderLogs();
 }
 
 function jRenderAll(){
@@ -6503,7 +6576,7 @@ function jRenderSugar(){
    BIRYANI TRACKER — FIX 20: slot state on VIEW month
 ═══════════════════════════════════════════════════ */
 function jBKey(){
-  return monthKey(state.jBViewM||0,state.jBViewY||new Date().getFullYear());
+  return jnkViewMKey();
 }
 function jBCount(mk){
   const e=(state.biryLog||[]).find(x=>x.monthKey===mk);
@@ -6579,11 +6652,7 @@ function jDeleteBiryani(mKey,entryId){
   showToast('Biryani entry removed.');
 }
 function jChangeBMonth(d){
-  let m=(state.jBViewM||0)+d;
-  let y=state.jBViewY||new Date().getFullYear();
-  if(m<0){m=11;y--;}if(m>11){m=0;y++;}
-  state.jBViewM=m;state.jBViewY=y;
-  jRenderBiryani();
+  jnkChangeMonth(d);
 }
 function jBiryaniStatusText(count){
   const remaining=Math.max(0,J_BIRY_LIMIT-count);
@@ -6603,8 +6672,8 @@ function jRenderBiryani(){
   const curMk=jBCurrentKey();
   const cnt=jBCount(viewMk);
   const curCnt=jBCount(curMk);
-  const vm=state.jBViewM||0;
-  const vy=state.jBViewY||new Date().getFullYear();
+  const vm=state.jnkViewMonth||0;
+  const vy=state.jnkViewYear||new Date().getFullYear();
   const pct=Math.min(100,Math.round((cnt/J_BIRY_LIMIT)*100));
   const remaining=Math.max(0,J_BIRY_LIMIT-cnt);
   const bm=document.getElementById('j-b-month');
@@ -7142,10 +7211,11 @@ buildEnglishPage();
 .weekly-tasks-title{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:900;color:var(--text-primary);}
 .weekly-tasks-count{font-size:11px;font-weight:600;color:var(--text-muted);background:rgba(139,92,246,0.06);border-radius:var(--r-pill);padding:3px 10px;}
 .weekly-add-row{display:flex;gap:8px;margin-bottom:14px;align-items:center;flex-wrap:wrap;}
-@media(max-width:479px){.weekly-add-row{flex-direction:column;}.weekly-add-input,.weekly-add-note,.weekly-add-btn{width:100%;}}
+@media(max-width:479px){.weekly-add-row{flex-direction:column;}.weekly-add-input,.weekly-add-note,.weekly-priority-select,.weekly-add-btn{width:100%;}}
 .weekly-add-input{flex:1;min-width:180px;font-size:16px;padding:12px 16px;border:1.5px solid rgba(200,195,240,.7);border-radius:var(--r-pill);background:#fff;color:var(--text-primary);outline:none;font-family:var(--font);}
 .weekly-add-input:focus{border-color:var(--purple-500);}
 .weekly-add-note{flex:1;min-width:140px;font-size:16px;padding:12px 14px;border:1.5px solid rgba(200,195,240,.7);border-radius:var(--r-pill);background:#fff;color:var(--text-primary);outline:none;font-family:var(--font);}
+.weekly-priority-select{font-size:16px;padding:11px 12px;border:1.5px solid rgba(200,195,240,.7);border-radius:var(--r-pill);background:#fff;color:var(--text-primary);outline:none;font-family:var(--font);cursor:pointer;min-width:128px;}
 .weekly-day-select{font-size:16px;padding:11px 10px;border:1.5px solid rgba(200,195,240,.7);border-radius:var(--r-pill);background:#fff;color:var(--text-primary);outline:none;font-family:var(--font);cursor:pointer;min-width:80px;}
 .weekly-add-btn{padding:12px 20px;background:linear-gradient(135deg,var(--purple-600),var(--purple-700));color:#fff;border:none;border-radius:var(--r-pill);font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font);white-space:nowrap;}
 .weekly-filter-row{display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none;padding:4px 16px 8px;-webkit-overflow-scrolling:touch;}
@@ -7218,6 +7288,11 @@ onkeydown="if(event.key==='Enter') wtAddTask()"/>
 <input class="weekly-add-note" id="wt-task-note"
 placeholder="Sub-note (optional)" maxlength="60"
 aria-label="Task sub-note"/>
+<select class="weekly-priority-select" id="wt-task-priority" aria-label="Task priority">
+<option value="critical">Critical</option>
+<option value="important">Important</option>
+<option value="normal" selected>Normal</option>
+</select>
 <div style="display:flex;flex-direction:column;gap:6px;">
 <div class="wt-day-picker" id="wt-day-picker" role="group" aria-label="Select days">
 <button type="button" class="wt-day-pill sel" data-day="Mon">Mon</button>
@@ -7403,6 +7478,7 @@ function wtSyncTaskShape(t){
   t.day=days.join(',');
   t.doneDays=doneDays;
   t.done=days.length>0&&doneDays.length===days.length;
+  t.priority=normalizePriority(t.priority);
   return t;
 }
 function getWeeklyTaskDisplayIcon(t){
@@ -7492,6 +7568,7 @@ function wtToggleTaskDay(id,day){
 function wtAddTask(){
   const inp=document.getElementById('wt-task-input');
   const noteInp=document.getElementById('wt-task-note');
+  const priInp=document.getElementById('wt-task-priority');
   const name=inp?inp.value.trim():'';
   if(!name){showToast('Enter a task name');return;}
   if(name.length>80){showToast('Task name too long (max 80 characters)','yt');return;}
@@ -7500,6 +7577,7 @@ function wtAddTask(){
   const rawDay=wtSelectedDays.length>0?wtSelectedDays.join(','):'Anytime';
   const days=wtNormalizeDays(validateTaskDays(rawDay));
   const note=noteInp?noteInp.value.trim():'';
+  const priority=normalizePriority(priInp&&priInp.value);
   const existing=(state.weeklyTasks||[]).find(t=>wtTaskKey(t)===wtTaskKey({name,note}));
   if(existing){
     wtSyncTaskShape(existing);
@@ -7508,15 +7586,17 @@ function wtAddTask(){
     existing.doneDays=(existing.doneDays||[]).filter(d=>existing.days.includes(d));
     existing.done=existing.doneDays.length===existing.days.length;
     existing.updatedAt=Date.now();
+    existing.priority=priority;
   }else{
     state.weeklyTasks.push({
-    id:genId(),name,note,
+    id:genId(),name,note,priority,
     days,day:days.join(','),doneDays:[],done:false,createdAt:new Date().toISOString(),updatedAt:Date.now()
   });
   }
 state.weeklyTasksUpdatedAt=Date.now();
 if(inp)inp.value='';
 if(noteInp)noteInp.value='';
+if(priInp)priInp.value='normal';
 _wtTasksLastHash='';
 _todayWeeklyHash='';
 debouncedSave(200);wtRenderTasks();renderTodayWeeklyPanel();
@@ -7566,8 +7646,10 @@ function wtOpenEdit(id){
   wtEditingId=id;
   const nm=document.getElementById('wet-name');
   const nt=document.getElementById('wet-note');
+  const pri=document.getElementById('wet-priority');
   if(nm)nm.value=t.name||'';
   if(nt)nt.value=t.note||'';
+  if(pri)pri.value=normalizePriority(t.priority);
   const ic=document.getElementById('wet-emoji');
   if(ic)ic.value=String(t.emoji||t.icon||t.taskEmoji||t.taskIcon||'').trim()||getWeeklyTaskDisplayIcon(t).replace(/&[^;]+;/g,'✓');
   if(ic&&!String(t.emoji||t.icon||t.taskEmoji||t.taskIcon||'').trim())ic.value='';
@@ -7585,11 +7667,13 @@ function saveWeeklyEdit(){
   const t=(state.weeklyTasks||[]).find(x=>x.id===editId);if(!t)return;
   const nm=document.getElementById('wet-name');
   const nt=document.getElementById('wet-note');
+  const pri=document.getElementById('wet-priority');
   const newName=nm?nm.value.trim():'';
   if(!newName){showToast('Task name cannot be empty','yt');return;}
   if(newName.length>80){showToast('Task name too long (max 80 characters)','yt');return;}
   t.name=newName;
   if(nt)t.note=nt.value.trim();
+  if(pri)t.priority=normalizePriority(pri.value);
   const ic=document.getElementById('wet-emoji');
   const iconVal=ic?ic.value.trim():'';
   t.emoji=iconVal;
@@ -7650,7 +7734,7 @@ function wtResetWeek(){
 }
 function wtUpdateStats(){
   wtNormalizeTaskStore();
-  const tasks=state.weeklyTasks||[];
+  const tasks=sortTasksByPriorityIfNeeded(state.weeklyTasks||[]);
   const total=tasks.length;
   const scheduled=wtScheduledDayCount(tasks);
   const done=wtCompletedDayCount(tasks);
@@ -7674,7 +7758,7 @@ function wtRenderTasks(){
   const sub=document.getElementById('weekly-hero-sub');
   if(sub)sub.textContent='Week of '+wtGetWeekLabel();
   wtNormalizeTaskStore();
-  const tasks=state.weeklyTasks||[];
+  const tasks=sortTasksByPriorityIfNeeded(state.weeklyTasks||[]);
   const dayNames=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const todayName=dayNames[new Date().getDay()];
   let filtered;
@@ -7689,7 +7773,7 @@ function wtRenderTasks(){
     return wtTaskDays(t).includes(wtFilter);
   });
   wtUpdateStats();
-  const newHash=wtFilter+'|'+filtered.map(t=>t.id+wtIsTaskDone(t)+wtTaskDays(t).join('-')+wtTaskDoneDays(t).join('-')+t.name+(t.note||'')+(t.emoji||'')+(t.icon||'')).join(',');
+  const newHash=wtFilter+'|'+filtered.map(t=>t.id+wtIsTaskDone(t)+wtTaskDays(t).join('-')+wtTaskDoneDays(t).join('-')+t.name+(t.note||'')+(t.priority||'')+(t.emoji||'')+(t.icon||'')).join(',');
   if(newHash===_wtTasksLastHash&&container.children.length>0)return;
   _wtTasksLastHash=newHash;
   if(!filtered.length){
@@ -7714,6 +7798,7 @@ function wtRenderTasks(){
     const emoji=getWeeklyTaskDisplayIcon(t);
     const safeName=sanitizeHTML(t.name||'');
     const safeNote=sanitizeHTML(t.note||'');
+    const pBadge=priorityBadgeHTML(t.priority);
     const taskDone=wtIsTaskDone(t);
     const doneSet=new Set(wtTaskDoneDays(t));
     const dayChips=wtTaskDays(t).map(day=>{
@@ -7724,7 +7809,7 @@ function wtRenderTasks(){
         'style="'+(!done?'background:'+c.bg+';color:'+c.color+';border-color:'+c.color+'40;':'')+'">'+sanitizeHTML(day)+'</button>';
     }).join('');
     const row=document.createElement('div');
-    row.className='weekly-task-item'+(taskDone?' wt-done':'');
+    row.className='weekly-task-item'+priorityClass(t.priority)+(taskDone?' wt-done':'');
     row.setAttribute('role','listitem');
     row.innerHTML=
       '<div class="weekly-cb'+(taskDone?' checked':'')+'" '+
@@ -7739,6 +7824,7 @@ function wtRenderTasks(){
       '<div class="weekly-day-chips">'+dayChips+'</div>'+
       '</div>'+
       '<div class="weekly-task-actions">'+
+      pBadge+
       '<span class="weekly-day-badge" style="background:'+dc.bg+';color:'+dc.color+';">'+sanitizeHTML((t.day||'').split(',').join(' · '))+'</span>'+
       '<button class="weekly-edit-btn" data-action="wt-edit" data-id="'+t.id+'" aria-label="Edit task: '+safeName+'">Edit</button>'+
       '<button class="weekly-del-btn" data-action="wt-delete" data-id="'+t.id+'" aria-label="Delete task: '+safeName+'">x</button>'+
@@ -8488,7 +8574,7 @@ function renderTodayWeeklyPanel(){
   const countEl=document.getElementById('today-weekly-count');
   if(!list)return;
   wtNormalizeTaskStore();
-  const tasks=state.weeklyTasks||[];
+  const tasks=sortTasksByPriorityIfNeeded(state.weeklyTasks||[]);
   const weekDays=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
   const dayNames=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const todayName=dayNames[new Date().getDay()];
@@ -8512,7 +8598,7 @@ function renderTodayWeeklyPanel(){
   });
   const newHash=[todayName,total,done,scheduled,pct]
     .concat(dayStats.map(d=>d.day+d.done+'/'+d.total))
-    .concat(relevant.map(t=>t.id+wtTaskDoneDays(t).join('-')+wtTaskDays(t).join('-')+(t.name||'')+(t.note||'')+(t.emoji||'')+(t.icon||'')))
+    .concat(relevant.map(t=>t.id+wtTaskDoneDays(t).join('-')+wtTaskDays(t).join('-')+(t.name||'')+(t.note||'')+(t.priority||'')+(t.emoji||'')+(t.icon||'')))
     .join('|');
   if(newHash===_todayWeeklyHash&&list.children.length>0){
     if(countEl)countEl.textContent=total+' tasks, '+done+'/'+scheduled+' days done';
@@ -8529,6 +8615,7 @@ function renderTodayWeeklyPanel(){
   const taskHtml=relevant.length?relevant.map(t=>{
     wtSyncTaskShape(t);
     const safeName=sanitizeHTML(t.name||'');
+    const pBadge=priorityBadgeHTML(t.priority);
     const taskDays=wtTaskDays(t);
     const toggleDay=taskDays.includes(todayName)?todayName:(taskDays.includes('Anytime')?'Anytime':taskDays[0]);
     const isDone=isDoneForDay(t,todayName);
@@ -8536,7 +8623,7 @@ function renderTodayWeeklyPanel(){
     const visibleDays=(taskDays.includes('Anytime')?weekDays:taskDays.filter(d=>weekDays.includes(d)));
     const capsules=visibleDays.map(day=>'<span class="tw-capsule">'+sanitizeHTML(day)+'</span>').join('');
     const sub=isDone?'Completed beautifully. Keep the rhythm.':'One calm step moves the week forward.';
-    return '<div class="tw-task'+(isDone?' done':'')+'" data-action="wt-toggle" data-id="'+t.id+'" data-day="'+toggleDay+'" role="listitem" aria-label="'+safeName+(isDone?' done':' pending')+'">'+
+    return '<div class="tw-task'+priorityClass(t.priority)+(isDone?' done':'')+'" data-action="wt-toggle" data-id="'+t.id+'" data-day="'+toggleDay+'" role="listitem" aria-label="'+safeName+(isDone?' done':' pending')+'">'+
       '<div class="tw-check" aria-hidden="true"><span></span></div>'+
       '<div class="tw-emoji" aria-hidden="true">'+emoji+'</div>'+
       '<div class="tw-task-body">'+
@@ -8545,6 +8632,7 @@ function renderTodayWeeklyPanel(){
         '<div class="tw-capsules">'+capsules+'</div>'+
       '</div>'+
       '<div class="tw-actions">'+
+        pBadge+
         '<button class="tw-edit" type="button" data-action="wt-edit" data-id="'+t.id+'" aria-label="Edit appearance for '+safeName+'">&#9998;</button>'+
         '<button class="tw-open" type="button" data-action="nav-to" data-page="weekly" data-nav-index="5" aria-label="Open weekly tasks">&#8250;</button>'+
       '</div>'+
@@ -8677,18 +8765,35 @@ function buildSettingsPageShell(){
 <div class="add-habit-form" id="add-habit-form-wrap">
 <div class="settings-form-title">Add new habit</div>
 <div class="settings-form-grid">
-<div class="settings-form-field"><label class="settings-form-label" for="new-habit-name">Habit</label><input class="settings-input" id="new-habit-name" placeholder="Habit name" maxlength="80"/></div>
-<div class="settings-form-field"><label class="settings-form-label" for="new-habit-note">Sub-note</label><input class="settings-note" id="new-habit-note" placeholder="Optional context" maxlength="100"/></div>
+<div class="settings-form-field"><label class="settings-form-label" for="new-habit-name">Habit</label><input class="settings-input" id="new-habit-name" placeholder="Habit name" maxlength="80" oninput="updatePriorityPreview()"/></div>
+<div class="settings-form-field"><label class="settings-form-label" for="new-habit-note">Sub-note</label><input class="settings-note" id="new-habit-note" placeholder="Optional context" maxlength="100" oninput="updatePriorityPreview()"/></div>
 </div>
 <div class="settings-row">
 <div class="settings-form-field" style="flex:1;"><label class="settings-form-label" for="new-habit-section">Section</label><select class="settings-select" id="new-habit-section"></select></div>
+<div class="settings-form-field" style="flex:1;"><label class="settings-form-label" for="new-habit-priority">Priority</label><select class="settings-select" id="new-habit-priority" onchange="updatePriorityPreview()"><option value="critical">Critical</option><option value="important">Important</option><option value="normal" selected>Normal</option></select></div>
 <div class="settings-form-field"><label class="settings-form-label" for="new-habit-pts">XP</label><input class="settings-pts" id="new-habit-pts" type="number" min="1" max="20" value="3" placeholder="pts"/></div>
+</div>
+<div class="priority-preview" aria-live="polite">
+<div class="settings-form-label">Live Preview</div>
+<div id="priority-live-preview"></div>
 </div>
 <button class="add-habit-btn" onclick="addNewHabit()">Add Habit</button>
 </div>
 </div>
 </div>
 <div class="settings-side-stack">
+<div class="sc">
+<div class="sh"><span class="si">🎯</span><span class="st">Task Priority</span></div>
+<div class="priority-controls-card">
+<label class="priority-toggle-row"><span>Auto-sort by priority</span><input type="checkbox" id="priority-auto-sort" onchange="savePrioritySettings()"/></label>
+<label class="priority-toggle-row"><span>Show Priority Badges</span><input type="checkbox" id="priority-show-badges" onchange="savePrioritySettings()"/></label>
+<div class="priority-guide">
+<div><span class="priority-badge critical">🔴 Critical</span><div>Health, medicines, payments, urgent tasks</div></div>
+<div><span class="priority-badge important">🟡 Important</span><div>Study, sleep, exercise, revision</div></div>
+<div><span class="priority-badge normal">🟢 Normal</span><div>Habits, grooming, preparation</div></div>
+</div>
+</div>
+</div>
 <div class="sc settings-section-manager">
 <div class="sh"><span class="si">&#128450;&#65039;</span><span class="st">Manage Sections</span></div>
 <div class="settings-card-subtitle">Keep Morning, Breakfast, Lunch, Water, Evening, Night and Prep organized.</div>
@@ -8747,6 +8852,8 @@ function buildSettingsPage(){
   _updateSettingsHero();
   _buildSectionLabels();
   updateMissedAlertDisplay();
+  updatePrioritySettingsUI();
+  updatePriorityPreview();
   if(!_settingsNeedRebuild)return;
   _settingsNeedRebuild=false;
   _buildSettingsHabitList();
@@ -8766,6 +8873,40 @@ function buildSettingsPage(){
       newHabitSel.value=saved;
   }
   buildSettingsStars();
+}
+function updatePrioritySettingsUI(){
+  const auto=document.getElementById('priority-auto-sort');
+  const badges=document.getElementById('priority-show-badges');
+  if(auto)auto.checked=!!state.autoSortByPriority;
+  if(badges)badges.checked=state.showPriorityBadges!==false;
+}
+function savePrioritySettings(){
+  const auto=document.getElementById('priority-auto-sort');
+  const badges=document.getElementById('priority-show-badges');
+  if(auto)state.autoSortByPriority=!!auto.checked;
+  if(badges)state.showPriorityBadges=!!badges.checked;
+  state.habitsUpdatedAt=Date.now();
+  _settingsNeedRebuild=true;
+  debouncedSave();
+  rebuildTodaySections();
+  wtRenderTasks();
+  renderTodayWeeklyPanel();
+  buildSettingsPage();
+}
+function updatePriorityPreview(){
+  const wrap=document.getElementById('priority-live-preview');if(!wrap)return;
+  const nameEl=document.getElementById('new-habit-name');
+  const noteEl=document.getElementById('new-habit-note');
+  const priEl=document.getElementById('new-habit-priority');
+  const h={id:'priority-preview-task',name:(nameEl&&nameEl.value.trim())||'Take cholesterol tablets',note:(noteEl&&noteEl.value.trim())||'With water after dinner',pts:3,priority:normalizePriority(priEl&&priEl.value)};
+  const previousShow=state.showPriorityBadges;
+  state.showPriorityBadges=true;
+  const row=buildHabitItem(h,0,1);
+  row.classList.remove('done');
+  row.querySelectorAll('.reorder-btns,.cb').forEach(el=>el.style.display='none');
+  state.showPriorityBadges=previousShow;
+  wrap.innerHTML='';
+  wrap.appendChild(row);
 }
 function _updateSettingsHero(){
   const totalPts=(state.habits||[]).reduce((s,h)=>s+(h.pts||0),0);
@@ -8825,11 +8966,12 @@ function _buildSettingsHabitList(){
   const filtered=(state.habits||[])
     .filter(h=>settingsFilter==='all'||h.section===settingsFilter)
     .sort((a,b)=>(a.order||0)-(b.order||0));
+  const displayFiltered=sortTasksByPriorityIfNeeded(filtered);
   if(!filtered.length){
     const e=document.createElement('div');e.className='tempty';e.textContent='No habits here yet.';w.appendChild(e);return;
   }
   const grouped={};
-  filtered.forEach(h=>{if(!grouped[h.section])grouped[h.section]=[];grouped[h.section].push(h);});
+  displayFiltered.forEach(h=>{if(!grouped[h.section])grouped[h.section]=[];grouped[h.section].push(h);});
   Object.keys(grouped).forEach(secId=>{
     const sec=(state.sections||[]).find(s=>s.id===secId);
     const secClass=_getSectionHeaderClass(secId);
@@ -8863,12 +9005,13 @@ function _buildSettingsHabitList(){
       const safeName=sanitizeHTML(h.name||'');
       const safeNote=sanitizeHTML(h.note||'');
       const safeId=sanitizeAttr(h.id||'');
+      const pBadge=priorityBadgeHTML(h.priority);
       const row=document.createElement('div');
-      row.className='habit-item';
+      row.className='habit-item'+priorityClass(h.priority);
       row.innerHTML=
         '<div class="habit-icon-wrap" data-action="open-icon-picker" data-id="'+safeId+'" role="button" tabindex="0" aria-label="Change icon for '+safeName+'">'+
         iconContent+'<div class="habit-icon-edit-dot" aria-hidden="true">&#9998;</div></div>'+
-        '<div class="habit-info"><div class="habit-name">'+safeName+'</div>'+(safeNote?'<div class="habit-meta">'+safeNote+'</div>':'')+
+        '<div class="habit-info">'+pBadge+'<div class="habit-name">'+safeName+'</div>'+(safeNote?'<div class="habit-meta">'+safeNote+'</div>':'')+
         '</div>'+
         '<span class="habit-pts-badge">+'+h.pts+' pts</span>'+
         '<div class="habit-actions">'+
@@ -9208,6 +9351,7 @@ function addNewHabit(){
   const name=document.getElementById('new-habit-name');
   const note=document.getElementById('new-habit-note');
   const section=document.getElementById('new-habit-section');
+  const priority=document.getElementById('new-habit-priority');
   const pts=document.getElementById('new-habit-pts');
   const nameVal=name?name.value.trim():'';
   if(!validateHabitName(nameVal)){showToast('Enter a valid habit name (1-80 characters)','yt');return;}
@@ -9218,12 +9362,14 @@ function addNewHabit(){
   const orders=(state.habits||[]).filter(h=>h.section===secVal).map(h=>h.order||0);
   const maxOrder=orders.length?Math.max(...orders):0;
   if(!state.habits)state.habits=[];
-  state.habits.push({id:genId(),section:secVal,name:nameVal,note:note?note.value.trim().slice(0,100):'',pts:ptsVal,order:maxOrder+1});
+  state.habits.push({id:genId(),section:secVal,name:nameVal,note:note?note.value.trim().slice(0,100):'',priority:normalizePriority(priority&&priority.value),pts:ptsVal,order:maxOrder+1});
   state.habitsUpdatedAt=Date.now();
   _settingsNeedRebuild=true;
   debouncedSave();rebuildSection(secVal);applyChecks();recountTasks();updateSummaryCards();buildSettingsPage();
   if(name)name.value='';
   if(note)note.value='';
+  if(priority)priority.value='normal';
+  updatePriorityPreview();
   showToast('Habit added!','gt');
 }
 function deleteHabit(id){
@@ -9253,10 +9399,12 @@ function openEditModal(id){
   const nm=document.getElementById('edit-habit-name');
   const nt=document.getElementById('edit-habit-note');
   const sec=document.getElementById('edit-habit-section');
+  const pri=document.getElementById('edit-habit-priority');
   const p=document.getElementById('edit-habit-pts');
   if(nm)nm.value=h.name||'';
   if(nt)nt.value=h.note||'';
   if(sec)sec.value=h.section||'';
+  if(pri)pri.value=normalizePriority(h.priority);
   if(p)p.value=h.pts;
   const modal=document.getElementById('edit-modal');
   if(modal){modal.classList.add('open');if(window.syncModalScrollLock)window.syncModalScrollLock();if(nm)nm.focus();}
@@ -9268,12 +9416,14 @@ function saveEditHabit(){
   const nm=document.getElementById('edit-habit-name');
   const nt=document.getElementById('edit-habit-note');
   const sec=document.getElementById('edit-habit-section');
+  const pri=document.getElementById('edit-habit-priority');
   const p=document.getElementById('edit-habit-pts');
   const newName=nm?nm.value.trim():'';
   if(!validateHabitName(newName)){showToast('Enter a valid habit name (1-80 characters)','yt');return;}
   const oldSection=h.section;
   h.name=newName;
   if(nt)h.note=nt.value.trim();
+  if(pri)h.priority=normalizePriority(pri.value);
   if(sec){
     const newSection=sec.value;
     const validSection=(state.sections||[]).some(s=>s.id===newSection&&s.tag!=='special');
@@ -9355,7 +9505,8 @@ function moveHabitDown(id){
 ═══════════════════════════════════════════════════ */
 function buildHabitItem(h,idx,total){
   const row=document.createElement('div');
-  row.className='ci'+(state.checks[h.id]===true?' done':'');
+  h.priority=normalizePriority(h.priority);
+  row.className='ci'+priorityClass(h.priority)+(state.checks[h.id]===true?' done':'');
   row.dataset.key=h.id;
   row.dataset.pts=h.pts;
   row.setAttribute('role','checkbox');
@@ -9366,6 +9517,7 @@ function buildHabitItem(h,idx,total){
   const safeName=sanitizeHTML(h.name||'');
   const safeNote=sanitizeHTML(h.note||'');
   const safeId=sanitizeAttr(h.id||'');
+  const pBadge=priorityBadgeHTML(h.priority);
   row.innerHTML=
     '<div class="cb" aria-hidden="true"></div>'+
     '<div class="task-emoji" data-action="open-icon-picker" data-id="'+safeId+'" '+
@@ -9376,10 +9528,12 @@ function buildHabitItem(h,idx,total){
     '<div class="cil">'+safeName+'</div>'+
     (safeNote?'<div class="cin">'+safeNote+'</div>':'')+
     '</div>'+
+    '<div class="task-side">'+
+    pBadge+
     '<div class="reorder-btns" aria-label="Reorder '+safeName+'">'+
     '<button class="reorder-btn" aria-label="Move up" data-action="move-habit-up" data-id="'+safeId+'" '+(idx===0?'disabled':'')+'>▲</button>'+
     '<button class="reorder-btn" aria-label="Move down" data-action="move-habit-down" data-id="'+safeId+'" '+(idx===total-1?'disabled':'')+'>▼</button>'+
-    '</div>';
+    '</div></div>';
   row.addEventListener('keydown',e=>{
     if(e.key==='Enter'||e.key===' '){e.preventDefault();toggle(row);}
   });
@@ -9443,7 +9597,7 @@ function buildTodaySections(preservedWaterCard){
       }
       return;
     }
-    const habits=(state.habits||[]).filter(h=>h.section===sec.id).sort((a,b)=>(a.order||0)-(b.order||0));
+    const habits=sortTasksByPriorityIfNeeded((state.habits||[]).filter(h=>h.section===sec.id).sort((a,b)=>(a.order||0)-(b.order||0)));
     if(!habits.length)return;
     const existingSec=document.getElementById('sec-'+sec.id);
     if(existingSec){const existingCount=existingSec.querySelectorAll('.ci').length;if(existingCount!==habits.length)rebuildSection(sec.id);return;}
@@ -9493,7 +9647,7 @@ function rebuildSection(sectionId){
   if(existing){const card=existing.closest('.sc');if(card)card.remove();}
   const sec=(state.sections||[]).find(s=>s.id===sectionId);
   if(!sec||sec.tag==='special')return;
-  const habits=(state.habits||[]).filter(h=>h.section===sectionId).sort((a,b)=>(a.order||0)-(b.order||0));
+  const habits=sortTasksByPriorityIfNeeded((state.habits||[]).filter(h=>h.section===sectionId).sort((a,b)=>(a.order||0)-(b.order||0)));
   if(!habits.length)return;
   const allSectionIds=getOrderedTodaySections().map(s=>s.id);
   const secIdx=allSectionIds.indexOf(sectionId);
@@ -9764,7 +9918,7 @@ function confirmFactoryReset(){
 .note-fav-btn:hover{transform:scale(1.2);}
 .note-pin-badge{display:inline-flex;align-items:center;gap:3px;background:#fef9c3;border:1px solid #fde68a;border-radius:999px;padding:3px 8px;font-size:9px;font-weight:700;color:#d97706;flex-shrink:0;}
 .note-card-title{font-size:15px;font-weight:900;color:#1e1b4b;margin-bottom:5px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-.note-card-desc{font-size:11px;color:#6b7280;line-height:1.6;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:8px;flex:1;}
+.note-card-desc{font-size:11px;color:#6b7280;line-height:1.6;white-space:pre-line;overflow:visible;margin-bottom:8px;flex:1;}
 .note-tags-row{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;}
 .note-tag{font-size:9px;font-weight:600;padding:3px 9px;border-radius:999px;background:#f5f3ff;color:#7C3AED;border:1px solid #ddd6fe;}
 .note-reminder-badge{display:inline-flex;align-items:center;gap:6px;width:max-content;max-width:100%;margin:0 0 10px;padding:5px 9px;border-radius:999px;font-size:10px;font-weight:800;border:1px solid #ddd6fe;background:#f5f3ff;color:#7C3AED;}
@@ -9832,7 +9986,7 @@ const NOTE_SECTIONS=[
   {id:'finance',    label:'💰 Finance',     color:'#059669',bg:'#dcfce7',textColor:'#059669'},
   {id:'ideas',      label:'🧠 Ideas',       color:'#f59e0b',bg:'#fef3c7',textColor:'#d97706'},
   {id:'goals',      label:'🎯 Goals',       color:'#ec4899',bg:'#fce7f3',textColor:'#be185d'},
-  {id:'screenshots',label:'📸 Screenshots', color:'#0284c7',bg:'#dbeafe',textColor:'#1d4ed8'},
+  {id:'shopping',   label:'🛒 Shopping',    color:'#0284c7',bg:'#dbeafe',textColor:'#1d4ed8'},
   {id:'personal',   label:'❤️ Personal',    color:'#e11d48',bg:'#ffe4e6',textColor:'#be123c'}
 ];
 
@@ -9848,6 +10002,10 @@ let notesPageBuilt=false;
 let _notesSearchTimer=null;
 /* FIX 5: firebase timer */
 let _notesFirebaseTimer=null;
+function normalizeNoteSection(section){
+  const s=String(section||'study').toLowerCase();
+  return s==='screenshots'?'shopping':s;
+}
 
 /* ═══════════════════════════════════════════════════
    ENSURE NOTES IN STATE
@@ -9953,7 +10111,8 @@ function renderNotes(){
   const q=notesSearchQuery.toLowerCase().trim();
   const source=notesFilter==='bin'?state.deletedNotes:state.notes;
   let filtered=source.filter(n=>{
-    if(notesFilter!=='all'&&notesFilter!=='bin'&&n.section!==notesFilter)return false;
+    const noteSection=normalizeNoteSection(n.section);
+    if(notesFilter!=='all'&&notesFilter!=='bin'&&noteSection!==notesFilter)return false;
     if(q){
       const inTitle=(n.title||'').toLowerCase().includes(q);
       const inDesc=(n.desc||'').toLowerCase().includes(q);
@@ -10007,7 +10166,7 @@ function renderNotes(){
    BUILD NOTE CARD HTML — FIX 1: no image
 ═══════════════════════════════════════════════════ */
 function buildNoteCardHTML(n,isDeleted){
-  const sec=NOTE_SECTIONS.find(s=>s.id===n.section)||NOTE_SECTIONS[0];
+  const sec=NOTE_SECTIONS.find(s=>s.id===normalizeNoteSection(n.section))||NOTE_SECTIONS[0];
   const tagsHTML=(n.tags||[]).slice(0,4).map(t=>
     '<span class="note-tag">'+sanitizeHTML(t)+'</span>'
   ).join('');
@@ -10113,7 +10272,7 @@ function openNoteModal(id){
     if(mTitle)mTitle.textContent='Edit Note';
     if(title)title.value=n.title||'';
     if(desc)desc.value=n.desc||'';
-    if(sec)sec.value=n.section||'study';
+    if(sec)sec.value=normalizeNoteSection(n.section);
     if(pin)pin.checked=!!n.pinned;
     if(fav)fav.checked=!!n.favorite;
     const reminderInfo=notesGetReminderInfo(n);
@@ -10274,7 +10433,7 @@ async function saveNote(){
     if(n){
       n.title=title;
       n.desc=descEl?descEl.value.trim():'';
-      n.section=secEl?secEl.value:'study';
+      n.section=normalizeNoteSection(secEl?secEl.value:'study');
       n.pinned=pinEl?pinEl.checked:false;
       n.favorite=favEl?favEl.checked:false;
       n.tags=[...notesTags];
@@ -10286,7 +10445,7 @@ async function saveNote(){
       id:genId(),
       title,
       desc:descEl?descEl.value.trim():'',
-      section:secEl?secEl.value:'study',
+      section:normalizeNoteSection(secEl?secEl.value:'study'),
       tags:[...notesTags],
       pinned:pinEl?pinEl.checked:false,
       favorite:favEl?favEl.checked:false,
