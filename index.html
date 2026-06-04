@@ -927,7 +927,14 @@ button:focus-visible,[role="button"]:focus-visible,[role="checkbox"]:focus-visib
 <div class="icon-picker-mode-sub">JPG, PNG — fits to circle</div>
 </div>
 </div>
-<div class="icon-emoji-panel active" id="icon-emoji-panel"><div class="icon-emoji-grid" id="icon-emoji-grid" role="listbox" aria-label="Choose emoji"></div></div>
+<div class="icon-emoji-panel active" id="icon-emoji-panel">
+<div class="today-custom-emoji-card" style="border:1.5px solid #e2e8f0;border-radius:12px;padding:12px;margin-bottom:12px;background:#fafafa;">
+<div style="font-size:12px;font-weight:800;color:var(--text-primary);margin-bottom:6px;">Custom Emoji</div>
+<input class="settings-input" id="today-custom-emoji-input" style="width:100%;font-size:22px;text-align:center;margin-bottom:8px;" maxlength="16" placeholder="Paste emoji here" aria-label="Paste custom emoji" oninput="updateTodayCustomEmojiPreview()"/>
+<div id="today-custom-emoji-preview" style="min-height:28px;font-size:24px;text-align:center;margin-bottom:8px;" aria-live="polite"></div>
+<button type="button" class="icon-picker-confirm" style="padding:10px;" onclick="useCustomTodayEmoji()">Use Emoji</button>
+</div>
+<div class="icon-emoji-grid" id="icon-emoji-grid" role="listbox" aria-label="Choose emoji"></div></div>
 <div class="icon-upload-panel" id="icon-upload-panel">
 <div class="icon-upload-area" onclick="document.getElementById('icon-file-input').click()" role="button" tabindex="0" aria-label="Click to upload image">
 <div class="icon-upload-preview" id="icon-upload-preview" aria-hidden="true">📤</div>
@@ -1019,6 +1026,8 @@ let _dailyListenerRef=null;
 let _dailyListenerCb=null;
 let _configListenerRef=null;
 let _configListenerCb=null;
+let _careerListenerRef=null;
+let _careerListenerCb=null;
 let _connectedListenerCb=null;
 let _saveQueue=Promise.resolve();
 let _savePending=false;
@@ -1579,7 +1588,7 @@ function ensureDefaults(){
   Object.keys(state.waterLog).forEach(k=>{if(k<cutoffKey)delete state.waterLog[k];});
   const wCutoff=new Date();wCutoff.setDate(wCutoff.getDate()-14);
   const wCutoffKey=wCutoff.getFullYear()+'-'+String(wCutoff.getMonth()+1).padStart(2,'0')+'-'+String(wCutoff.getDate()).padStart(2,'0');
-  Object.keys(state.ctWeeklyHours).forEach(k=>{if(k<wCutoffKey)delete state.ctWeeklyHours[k];});
+  Object.keys(state.ctWeeklyHours).forEach(k=>{if(!_validDateKey(k))delete state.ctWeeklyHours[k];});
   if(!jnkSelected||Array.isArray(jnkSelected))jnkSelected={};
   if(!Array.isArray(state.notes))state.notes=[];
   if(!Array.isArray(state.deletedNotes))state.deletedNotes=[];
@@ -1676,6 +1685,85 @@ function _getDeviceId(){
   return id;
 }
 function userRef(path){return rtdb.ref('sandy_shared/'+path);}
+function permanentRef(path){return rtdb.ref('sandy_shared/permanent/'+path);}
+function _validDateKey(key){return /^\d{4}-\d{2}-\d{2}$/.test(String(key||''));}
+function _dateKeyFromDate(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function addDaysToKey(key,days){const d=new Date(key+'T00:00:00');d.setDate(d.getDate()+days);return _dateKeyFromDate(d);}
+function getCurrentWeekStartKey(){return weekStartOf(new Date());}
+function getCalendarWeekKeys(startKey){const s=startKey||getCurrentWeekStartKey();return Array.from({length:7},(_,i)=>addDaysToKey(s,i));}
+function buildCareerPayload(){
+  const skills=state.ctSkills||{sql:0,tools:0,proj:0,intv:0};
+  return {
+    savedAt:new Date().toISOString(),savedBy:_getDeviceId(),
+    ctSkills:{sql:skills.sql||0,tools:skills.tools||0,proj:skills.proj||0,intv:skills.intv||0},
+    ctStudyHrs:state.ctStudyHrs||0,ctDayDone:!!state.ctDayDone,ctTodayLogged:!!state.ctTodayLogged,
+    ctTotalDays:state.ctTotalDays||0,ctStreakDays:state.ctStreakDays||0,ctStreakLastDate:state.ctStreakLastDate||null,
+    ctLastDate:state.ctLastDate||null,ctLastStudyDate:state.ctLastStudyDate||null,ctLastCompletedDate:state.ctLastCompletedDate||null,
+    ctDayHistory:state.ctDayHistory||{},ctConsecutiveRestDays:state.ctConsecutiveRestDays||0,
+    ctTasks:state.ctTasks||[],deletedCtTaskIds:(state.deletedCtTaskIds||[]).slice(-300),ctTasksUpdatedAt:state.ctTasksUpdatedAt||0,
+    ctLog:state.ctLog||[],ctLogUpdatedAt:state.ctLogUpdatedAt||0,ctWeeklyHours:state.ctWeeklyHours||{},
+    ctCareerUpdatedAt:state.ctCareerUpdatedAt||0,totalPts:state.totalPts||0,earnedBadges:state.earnedBadges||[]
+  };
+}
+function applyCareerDoc(d){
+  if(!d||typeof d!=='object')return;
+  const incomingCareerTs=d.ctCareerUpdatedAt||0;
+  const currentCareerTs=state.ctCareerUpdatedAt||0;
+  if(d.ctSkills&&typeof d.ctSkills==='object'&&!Array.isArray(d.ctSkills)){
+    state.ctSkills=state.ctSkills||{sql:0,tools:0,proj:0,intv:0};
+    CT_SKILL_KEYS.forEach(k=>{
+      const remoteSkill=sanitizeRemoteNumber(d.ctSkills[k],0,100,0);
+      state.ctSkills[k]=incomingCareerTs>currentCareerTs?remoteSkill:Math.max(state.ctSkills[k]||0,remoteSkill);
+    });
+  }
+  if(incomingCareerTs>currentCareerTs){
+    state.ctStudyHrs=sanitizeRemoteNumber(d.ctStudyHrs,0,24,0);
+    state.ctDayDone=!!d.ctDayDone;state.ctTodayLogged=!!d.ctTodayLogged;
+    state.ctLastDate=d.ctLastDate||state.ctLastDate||null;
+    state.ctLastStudyDate=d.ctLastStudyDate||state.ctLastStudyDate||null;
+    state.ctStreakLastDate=d.ctStreakLastDate||state.ctStreakLastDate||null;
+    state.ctLastCompletedDate=d.ctLastCompletedDate||state.ctLastCompletedDate||null;
+    state.ctCareerUpdatedAt=incomingCareerTs;
+  }else if(incomingCareerTs===currentCareerTs){
+    state.ctStudyHrs=Math.max(state.ctStudyHrs||0,sanitizeRemoteNumber(d.ctStudyHrs,0,24,0));
+  }
+  state.ctTotalDays=Math.max(state.ctTotalDays||0,sanitizeRemoteNumber(d.ctTotalDays,0,Infinity,0));
+  state.ctStreakDays=Math.max(state.ctStreakDays||0,sanitizeRemoteNumber(d.ctStreakDays,0,Infinity,0));
+  state.ctConsecutiveRestDays=Math.max(state.ctConsecutiveRestDays||0,sanitizeRemoteNumber(d.ctConsecutiveRestDays,0,Infinity,0));
+  if(d.ctLastCompletedDate&&(!state.ctLastCompletedDate||d.ctLastCompletedDate>state.ctLastCompletedDate))state.ctLastCompletedDate=sanitizeRemoteString(d.ctLastCompletedDate,10);
+  if(d.ctLastStudyDate&&(!state.ctLastStudyDate||d.ctLastStudyDate>state.ctLastStudyDate))state.ctLastStudyDate=sanitizeRemoteString(d.ctLastStudyDate,10);
+  if(d.ctStreakLastDate&&(!state.ctStreakLastDate||d.ctStreakLastDate>state.ctStreakLastDate))state.ctStreakLastDate=sanitizeRemoteString(d.ctStreakLastDate,10);
+  if(d.ctWeeklyHours&&typeof d.ctWeeklyHours==='object'){
+    state.ctWeeklyHours=state.ctWeeklyHours||{};
+    Object.keys(d.ctWeeklyHours).forEach(k=>{if(_validDateKey(k))state.ctWeeklyHours[k]=Math.max(state.ctWeeklyHours[k]||0,sanitizeRemoteNumber(d.ctWeeklyHours[k],0,24,0));});
+  }
+  if(d.ctDayHistory&&typeof d.ctDayHistory==='object'){
+    state.ctDayHistory=state.ctDayHistory||{};
+    const priority={complete:3,partial:2,rest:1};const validValues=new Set(['complete','partial','rest']);
+    Object.keys(d.ctDayHistory).forEach(k=>{if(!_validDateKey(k)||!validValues.has(d.ctDayHistory[k]))return;const existing=priority[state.ctDayHistory[k]]||0;const incoming=priority[d.ctDayHistory[k]]||0;if(incoming>existing)state.ctDayHistory[k]=d.ctDayHistory[k];});
+  }
+  if(Array.isArray(d.deletedCtTaskIds)){
+    const set=new Set((state.deletedCtTaskIds||[]).concat(d.deletedCtTaskIds.filter(id=>typeof id==='string')));
+    state.deletedCtTaskIds=Array.from(set).slice(-300);
+  }
+  if(Array.isArray(d.ctTasks)){
+    const remoteTs=d.ctTasksUpdatedAt||0;const localTs=state.ctTasksUpdatedAt||0;const deleted=new Set(state.deletedCtTaskIds||[]);
+    const clean=t=>({id:sanitizeRemoteString(t&&t.id,40),text:sanitizeRemoteString(t&&t.text,80),cat:sanitizeRemoteString(t&&t.cat,40)||'General',done:sanitizeRemoteBool(t&&t.done)});
+    if(remoteTs>localTs){state.ctTasks=d.ctTasks.map(clean).filter(t=>t.id&&t.text&&!deleted.has(t.id)).slice(-MAX_CT_TASKS);state.ctTasksUpdatedAt=remoteTs;}
+    else{const map=new Map((state.ctTasks||[]).filter(t=>!deleted.has(t.id)).map(t=>[t.id,t]));d.ctTasks.forEach(rt=>{const t=clean(rt);if(!t.id||!t.text||deleted.has(t.id))return;const ex=map.get(t.id);map.set(t.id,ex?Object.assign({},ex,t,{done:!!(ex.done||t.done)}):t);});state.ctTasks=Array.from(map.values()).slice(-MAX_CT_TASKS);state.ctTasksUpdatedAt=Math.max(localTs,remoteTs);}
+  }
+  if(Array.isArray(d.ctLog)){
+    if(!Array.isArray(state.ctLog))state.ctLog=[];
+    const seen=new Set(state.ctLog.map(e=>e.id||((e.ts||'')+(e.msg||''))));
+    d.ctLog.forEach(re=>{const key=re&&(re.id||((re.ts||'')+(re.msg||'')));if(key&&!seen.has(key)){state.ctLog.push(re);seen.add(key);}});
+    state.ctLog.sort((a,b)=>(b.ts||0)-(a.ts||0));
+    if(state.ctLog.length>CT_LOG_LIMIT)state.ctLog=state.ctLog.slice(0,CT_LOG_LIMIT);
+    state.ctLogUpdatedAt=Math.max(state.ctLogUpdatedAt||0,d.ctLogUpdatedAt||0);
+  }
+  if(Array.isArray(d.earnedBadges)){state.earnedBadges=state.earnedBadges||[];d.earnedBadges.forEach(b=>{if(!state.earnedBadges.includes(b))state.earnedBadges.push(b);});}
+  state.totalPts=Math.max(state.totalPts||0,sanitizeRemoteNumber(d.totalPts,0,99999,0));
+  if(typeof ctEvaluateStreak==='function')ctEvaluateStreak();
+}
 
 /* ═══════════════════════════════════════════════════
    DIRTY FLAGS
@@ -1760,6 +1848,8 @@ function buildDailyPayload(){
   if(Array.isArray(payload.junkLog)&&payload.junkLog.length>150){
     payload.junkLog=payload.junkLog.slice(-150);
   }
+  /* Permanent career data is written to sandy_shared/permanent/career, not the daily doc. */
+  ['ctSkills','ctStudyHrs','ctDayDone','ctStreakDays','ctLastDate','ctStreakLastDate','ctTodayLogged','ctTotalDays','ctLastCompletedDate','ctTasks','ctTasksUpdatedAt','ctLog','ctLogUpdatedAt','ctWeeklyHours','ctCareerUpdatedAt','ctLastStudyDate','ctDayHistory','ctConsecutiveRestDays'].forEach(k=>delete payload[k]);
   /* FIX 5: notes never in daily payload */
   delete payload.notes;
   delete payload.notesUpdatedAt;
@@ -1905,7 +1995,6 @@ function applyDailyDoc(d){
   }
   if(mergeChecks&&incomingCareerTs>currentCareerTs){
     state.ctStudyHrs=sanitizeRemoteNumber(d.ctStudyHrs,0,24,0);
-    if(!d.ctLastStudyDate)state.ctLastStudyDate=null;
     state.ctCareerUpdatedAt=incomingCareerTs;
   }else if(mergeChecks&&incomingCareerTs===currentCareerTs){
     state.ctStudyHrs=Math.max(state.ctStudyHrs||0,sanitizeRemoteNumber(d.ctStudyHrs,0,24,0));
@@ -1955,7 +2044,8 @@ function applyDailyDoc(d){
         const key=re.id||re.ts+(re.msg||'');
         if(!localIds.has(key)){state.ctLog.push(re);localIds.add(key);}
       });
-      if(state.ctLog.length>CT_LOG_LIMIT)state.ctLog=state.ctLog.slice(0,CT_LOG_LIMIT);
+      state.ctLog.sort((a,b)=>(b.ts||0)-(a.ts||0));
+  if(state.ctLog.length>CT_LOG_LIMIT)state.ctLog=state.ctLog.slice(0,CT_LOG_LIMIT);
       state.ctLogUpdatedAt=Math.max(remoteTs,localTs);
     }
   }
@@ -2136,7 +2226,11 @@ function applyConfigDoc(d){
       customIcon:h.customIconType==='image_local'
         ?(state.habits||[]).find(x=>x.id===h.id)?.customIcon||sanitizeRemoteString(h.customIcon,200)
         :sanitizeRemoteString(h.customIcon,200),
-      customIconType:sanitizeRemoteString(h.customIconType,20)
+      customIconType:sanitizeRemoteString(h.customIconType,20),
+      emoji:sanitizeRemoteString(h.emoji,40),
+      icon:sanitizeRemoteString(h.icon,40),
+      presetIcon:sanitizeRemoteString(h.presetIcon,40),
+      iconSource:sanitizeRemoteString(h.iconSource,20)
     }));
     state.habitsUpdatedAt=d.habitsUpdatedAt;
     _settingsNeedRebuild=true;
@@ -2233,14 +2327,19 @@ async function _doSave(){
     _lastRemoteSavedAt=now;
     const dailyPath='sandy_shared/daily_'+today;
     const configPath='sandy_shared/config';
+    const careerPath='sandy_shared/permanent/career';
     const dailyPayload=buildDailyPayload();
     dailyPayload.savedAt=now;
     dailyPayload.savedBy=_getDeviceId();
     const configPayload=buildConfigPayload();
     configPayload.updatedAt=now;
+    const careerPayload=buildCareerPayload();
+    careerPayload.savedAt=now;
+    careerPayload.savedBy=_getDeviceId();
     const updates={};
     Object.keys(dailyPayload).forEach(key=>{updates[dailyPath+'/'+key]=dailyPayload[key];});
     updates[configPath]=configPayload;
+    updates[careerPath]=careerPayload;
     await rtdb.ref().update(updates);
     updateFbStatus('online');
     showSync('success','Synced');
@@ -2283,11 +2382,13 @@ async function load(){
     showSync('syncing','Loading...');
     updateFbStatus('syncing');
     const today=todayKey();
-    const[dailySnap,configSnap]=await Promise.all([
+    const[dailySnap,configSnap,careerSnap]=await Promise.all([
       userRef('daily_'+today).once('value'),
-      userRef('config').once('value')
+      userRef('config').once('value'),
+      permanentRef('career').once('value')
     ]);
     if(dailySnap.exists())applyDailyDoc(dailySnap.val());
+    if(careerSnap.exists())applyCareerDoc(careerSnap.val());
     if(configSnap.exists())applyConfigDoc(configSnap.val());
     syncWeeklyGrams();
     updateFbStatus('online');
@@ -2318,6 +2419,10 @@ function _detachAllListeners(){
     try{_configListenerRef.off('value',_configListenerCb);}catch(e){}
   }
   _configListenerRef=null;_configListenerCb=null;
+  if(_careerListenerRef&&_careerListenerCb){
+    try{_careerListenerRef.off('value',_careerListenerCb);}catch(e){}
+  }
+  _careerListenerRef=null;_careerListenerCb=null;
   if(_connectedListenerCb){
     try{(_connectedListenerRef||rtdb.ref('.info/connected')).off('value',_connectedListenerCb);}catch(e){}
     _connectedListenerCb=null;
@@ -2334,6 +2439,7 @@ function startRealtimeSync(){
   const myDeviceId=_getDeviceId();
   const dailyRef=userRef('daily_'+todayKey());
   const configRef=userRef('config');
+  const careerRef=permanentRef('career');
 
   /* FIX 3: deadlock-proof daily listener */
   _dailyListenerCb=dailyRef.on('value',snap=>{
@@ -2422,6 +2528,28 @@ function startRealtimeSync(){
   });
   _dailyListenerRef=dailyRef;
 
+  _careerListenerCb=careerRef.on('value',snap=>{
+    if(!snap.exists())return;
+    const remote=snap.val();
+    if(!remote)return;
+    if(remote.savedBy===myDeviceId&&remote.savedAt===_lastRemoteSavedAt)return;
+    _isApplyingRemote=true;
+    try{
+      const before=JSON.stringify({skills:state.ctSkills,hrs:state.ctStudyHrs,streak:state.ctStreakDays,log:(state.ctLog||[]).map(e=>e.id).join(','),week:state.ctWeeklyHours});
+      applyCareerDoc(remote);
+      try{safeLocalStorageSave(DB_KEY,JSON.stringify(state));}catch(e){}
+      const after=JSON.stringify({skills:state.ctSkills,hrs:state.ctStudyHrs,streak:state.ctStreakDays,log:(state.ctLog||[]).map(e=>e.id).join(','),week:state.ctWeeklyHours});
+      if(before!==after){
+        _ctChartLastHash='';
+        if(typeof ctRenderCareerDerived==='function')ctRenderCareerDerived();
+        else if(typeof refreshUILightweight==='function')refreshUILightweight();
+        showSync('success','Career synced');
+      }
+    }catch(err){console.warn('Career listener error:',err);}
+    finally{_isApplyingRemote=false;}
+  },err=>{console.warn('Career listener error:',err);});
+  _careerListenerRef=careerRef;
+
   /* Config listener */
 _configListenerCb=configRef.on('value',snap=>{
     if(!snap.exists())return;
@@ -2489,9 +2617,9 @@ function handleDailyReset(){
   }
   if(state.lastDate){
     if(!state.ctDayHistory)state.ctDayHistory={};
+    const rolloverHours=state.ctWeeklyHours&&state.ctWeeklyHours[state.lastDate]!==undefined?state.ctWeeklyHours[state.lastDate]:(state.ctStudyHrs||0);
     if(!state.ctDayHistory[state.lastDate]){
-      state.ctDayHistory[state.lastDate]=state.ctDayDone
-        ?'complete':(state.ctStudyHrs||0)>0?'partial':'rest';
+      state.ctDayHistory[state.lastDate]=state.ctDayDone?'complete':rolloverHours>0?'partial':'rest';
     }
   }
   if(typeof ctEvaluateStreak==='function')ctEvaluateStreak();
@@ -2502,7 +2630,7 @@ function handleDailyReset(){
   state.ctDayDone=false;
   state.ctStudyHrs=0;
   state.ctTodayLogged=false;
-  state.ctLastStudyDate=null;
+  // Preserve last studied date as permanent streak/history metadata.
   state.missedBannerDismissedDate='';
   state.missedHighlightsShown=false;
   state.lastResetTimestamp=Date.now();
@@ -2516,8 +2644,7 @@ function handleDailyReset(){
   if(typeof resetDailyLangFlags==='function')resetDailyLangFlags();
   try{if(typeof jCheckWeekReset==='function')jCheckWeekReset();}catch(e){}
   try{if(typeof wtCheckWeekReset==='function')wtCheckWeekReset();}catch(e){}
-  /* FIX 15: clean weekly hours on daily reset */
-  if(typeof ctCleanWeeklyHours==='function')ctCleanWeeklyHours();
+  /* Permanent career history is intentionally not cleaned during daily reset. */
   syncWeeklyGrams();
   state.lastDate=today;
 }
@@ -4881,7 +5008,7 @@ function ctDailyReset(){
   state.ctStudyHrs=0;
   state.ctDayDone=false;
   state.ctTodayLogged=false;
-  state.ctLastStudyDate=null;
+  // Preserve last studied date as permanent streak/history metadata.
   ctActiveTag='All';
 }
 function ctProactiveMidnightStreak(){
@@ -4940,7 +5067,6 @@ function ctSyncTodayCareerState(){
   if(!state.ctWeeklyHours)state.ctWeeklyHours={};
   state.ctWeeklyHours[today]=hrs;
   if(hrs>0)state.ctLastStudyDate=today;
-  else state.ctLastStudyDate=null;
   if(!state.ctDayDone){
     if(!state.ctDayHistory)state.ctDayHistory={};
     if(hrs>0)state.ctDayHistory[today]='partial';
@@ -4970,6 +5096,7 @@ function ctLog(msg){
   const time=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
   state.ctLog.unshift({id:genId(),msg:msg,time,date:todayKey(),ts:Date.now()});
   state.ctLogUpdatedAt=Date.now();
+  state.ctLog.sort((a,b)=>(b.ts||0)-(a.ts||0));
   if(state.ctLog.length>CT_LOG_LIMIT)state.ctLog=state.ctLog.slice(0,CT_LOG_LIMIT);
 }
 
@@ -5119,26 +5246,18 @@ function ctRenderWeekChart(){
   const labelsEl=document.getElementById('ct-chart-labels');
   if(!barsEl||!labelsEl)return;
   if(!state.ctWeeklyHours)state.ctWeeklyHours={};
-  const now=new Date();const todayK=todayKey();
-  const days=[];let totalHrs=0;
-  for(let i=6;i>=0;i--){
-    const d=new Date(now);d.setDate(now.getDate()-i);
-    const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-    const isToday=(key===todayK);
+  const todayK=todayKey();
+  const weekKeys=getCalendarWeekKeys(getCurrentWeekStartKey());
+  const labels=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  const days=weekKeys.map((key,i)=>{
     const stored=state.ctWeeklyHours[key]||0;
-    const dayOutcome=(state.ctDayHistory||{})[key];
-    let hrs;
-    if(isToday)hrs=Math.max(ctGetTodayHrs(),stored);
-    else if(dayOutcome==='rest'||(!dayOutcome&&key<todayK))hrs=stored;
-    else hrs=stored;
-    days.push({label:DAY_NAMES[d.getDay()],hrs,isToday});
-    totalHrs+=hrs;
-  }
-    // FIX Bug8 — include ctGetTodayHrs() in hash; remove children.length condition to allow re-render when today's hours change
-  const newHash=days.map(d=>d.hrs+'|'+d.isToday).join(',')+':'+ctGetTodayHrs();
+    const hrs=key===todayK?Math.max(ctGetTodayHrs(),stored):stored;
+    return{key,label:labels[i],short:labels[i].slice(0,3),hrs,isToday:key===todayK};
+  });
+  const totalHrs=days.reduce((sum,d)=>sum+d.hrs,0);
+  const newHash=days.map(d=>d.key+':'+d.hrs+':'+d.isToday).join('|');
   if(newHash===_ctChartLastHash)return;
   _ctChartLastHash=newHash;
-
   if(barsEl.children.length!==days.length){
     barsEl.innerHTML='';labelsEl.innerHTML='';
     days.forEach((_,i)=>{
@@ -5163,10 +5282,9 @@ function ctRenderWeekChart(){
     if(hEl)hEl.textContent=d.hrs>0?d.hrs+'h':'';
     if(oEl)oEl.className='ct-chart-bar-outer'+(d.isToday?' today':'');
     if(bEl){bEl.style.height=pct+'%';bEl.style.background=barColor;}
-    if(lEl){lEl.textContent=d.isToday?'Today':d.label;lEl.className='ct-chart-day'+(d.isToday?' today':'');}
+    if(lEl){lEl.textContent=d.short;lEl.className='ct-chart-day'+(d.isToday?' today':'');lEl.setAttribute('aria-label',d.label+' '+d.key);}
   });
-  const studied=days.filter(d=>d.hrs>0).length;
-  const avg=studied>0?(totalHrs/studied).toFixed(1):'0';
+  const avg=(totalHrs/7).toFixed(1);
   const totEl=document.getElementById('ct-week-total');
   const avgEl=document.getElementById('ct-week-avg');
   if(totEl)totEl.innerHTML='Weekly Total: <strong>'+totalHrs+' hrs</strong>';
@@ -9137,8 +9255,42 @@ function getSectionEmoji(id,icon){
   };
   return map[id]||icon||'📌';
 }
-function getHabitIconHtml(habit){
-  if(habit.customIcon==='__needs_upload__'){
+function normalizeEmojiValue(value){
+  return String(value||'').trim().replace(/\s+/g,'');
+}
+function isValidCustomEmoji(value){
+  const v=normalizeEmojiValue(value);
+  if(!v||v.length>16)return false;
+  try{
+    if(/[\p{L}\p{N}]/u.test(v))return false;
+    if(!/[\p{Extended_Pictographic}]/u.test(v))return false;
+    return /^[\p{Extended_Pictographic}\p{Emoji_Modifier}\uFE0E\uFE0F\u200D]+$/u.test(v);
+  }catch(e){
+    return /[\uD800-\uDBFF][\uDC00-\uDFFF]/.test(v)&&!/^[A-Za-z0-9]+$/.test(v);
+  }
+}
+function setHabitEmojiIcon(habit,emoji,source){
+  const clean=normalizeEmojiValue(emoji);
+  habit.customIcon=clean;
+  habit.customIconType='emoji';
+  habit.emoji=clean;
+  habit.icon=clean;
+  habit.iconSource=source||'custom';
+  if(source==='preset')habit.presetIcon=clean;
+}
+function clearHabitCustomEmoji(habit){
+  if(habit.presetIcon){
+    setHabitEmojiIcon(habit,habit.presetIcon,'preset');
+    return true;
+  }
+  habit.customIcon='';
+  habit.customIconType='';
+  habit.emoji='';
+  habit.icon='';
+  habit.iconSource='';
+  return false;
+}
+function getHabitIconHtml(habit){  if(habit.customIcon==='__needs_upload__'){
     return'<span title="Image stored on original device only" style="font-size:18px;">'+getTaskEmoji(habit.name)+'</span>';
   }
   if(habit.customIconType==='image'&&habit.customIcon&&habit.customIcon.startsWith('data:image/')){
@@ -9188,6 +9340,10 @@ function _buildIconEmojiGrid(){
       });
       btn.classList.add('sel');btn.setAttribute('aria-selected','true');
       selectedEmoji=e;
+      const customInput=document.getElementById('today-custom-emoji-input');
+      const customPreview=document.getElementById('today-custom-emoji-preview');
+      if(customInput)customInput.value='';
+      if(customPreview)customPreview.textContent='';
       _updateIconConfirmBtn();
     };
     grid.appendChild(btn);
@@ -9197,6 +9353,38 @@ function _updateIconConfirmBtn(){
   const btn=document.getElementById('icon-picker-confirm-btn');
   if(!btn)return;
   btn.disabled=!selectedEmoji;
+}
+function updateTodayCustomEmojiPreview(){
+  const input=document.getElementById('today-custom-emoji-input');
+  const preview=document.getElementById('today-custom-emoji-preview');
+  const val=normalizeEmojiValue(input?input.value:'');
+  if(input&&input.value!==val)input.value=val;
+  if(preview)preview.textContent=val&&isValidCustomEmoji(val)?val:(val?'Emoji only':'');
+  if(val){
+    selectedEmoji=null;
+    document.querySelectorAll('.icon-emoji-btn').forEach(b=>{b.classList.remove('sel');b.setAttribute('aria-selected','false');});
+    _updateIconConfirmBtn();
+  }
+}
+function useCustomTodayEmoji(){
+  if(!iconPickerHabitId)return;
+  const habit=(state.habits||[]).find(h=>h.id===iconPickerHabitId);if(!habit)return;
+  const input=document.getElementById('today-custom-emoji-input');
+  const val=normalizeEmojiValue(input?input.value:'');
+  if(!val){
+    const reverted=clearHabitCustomEmoji(habit);
+    showToast(reverted?'Custom emoji removed - preset restored':'Custom emoji removed','gt');
+  }else{
+    if(!isValidCustomEmoji(val)){showToast('Paste one emoji only','yt');return;}
+    setHabitEmojiIcon(habit,val,'custom');
+    showToast('Custom emoji saved!','gt');
+  }
+  state.habitsUpdatedAt=Date.now();
+  _settingsNeedRebuild=true;
+  selectedEmoji=null;
+  _lsImageCache=null;
+  debouncedSave();rebuildSection(habit.section);applyChecks();buildSettingsPage();
+  if(typeof closeIconPicker==='function')closeIconPicker();
 }
 function switchIconMode(mode){
   if(mode==='upload'){
@@ -9232,6 +9420,12 @@ function openIconPicker(habitId){
   if(preview)preview.innerHTML='📤';
   const fileInput=document.getElementById('icon-file-input');
   if(fileInput)fileInput.value='';
+  const habit=(state.habits||[]).find(h=>h.id===habitId);
+  const customInput=document.getElementById('today-custom-emoji-input');
+  const customPreview=document.getElementById('today-custom-emoji-preview');
+  const existingCustom=habit&&habit.iconSource==='custom'?normalizeEmojiValue(habit.customIcon||habit.emoji||habit.icon):'';
+  if(customInput)customInput.value=existingCustom;
+  if(customPreview)customPreview.textContent=existingCustom;
   _updateIconConfirmBtn();
   switchIconMode('emoji');
   const overlay=document.getElementById('icon-picker-overlay');
@@ -9301,7 +9495,7 @@ function confirmIconPick(){
   if(!iconPickerHabitId)return;
   const habit=(state.habits||[]).find(h=>h.id===iconPickerHabitId);if(!habit)return;
   if(iconPickerMode==='emoji'&&selectedEmoji){
-    habit.customIcon=selectedEmoji;habit.customIconType='emoji';showToast('Icon updated!','gt');
+    setHabitEmojiIcon(habit,selectedEmoji,'preset');showToast('Icon updated!','gt');
   }else{
     showToast('Select an emoji first','yt');return;
   }
@@ -11099,6 +11293,9 @@ window.openIconPicker=openIconPicker;
 window.switchIconMode=switchIconMode;
 window.handleIconUpload=handleIconUpload;
 window.confirmIconPick=confirmIconPick;
+window.updateTodayCustomEmojiPreview=updateTodayCustomEmojiPreview;
+window.useCustomTodayEmoji=useCustomTodayEmoji;
+window.isValidCustomEmoji=isValidCustomEmoji;
 window.closeIconPicker=closeIconPicker;
 window._updateIconConfirmBtn=_updateIconConfirmBtn;
 window.closeEditModal=closeEditModal;
@@ -11212,9 +11409,11 @@ async function init(){
     updateFbStatus('syncing');
     Promise.all([
       userRef('daily_'+todayKey()).once('value'),
-      userRef('config').once('value')
-    ]).then(([dailySnap,configSnap])=>{
+      userRef('config').once('value'),
+      permanentRef('career').once('value')
+    ]).then(([dailySnap,configSnap,careerSnap])=>{
       if(dailySnap.exists())applyDailyDoc(dailySnap.val());
+      if(careerSnap.exists())applyCareerDoc(careerSnap.val());
       if(configSnap.exists())applyConfigDoc(configSnap.val());
       syncWeeklyGrams();
       _firebaseLoaded=true;
@@ -11234,7 +11433,6 @@ async function init(){
         try{jCheckWeekReset();}catch(e){}
         try{wtCheckWeekReset();}catch(e){}
         cleanOrphanEntries();
-        ctCleanWeeklyHours();
       },1000);
       setTimeout(()=>{
         if(typeof checkStreakMilestone==='function')checkStreakMilestone();
