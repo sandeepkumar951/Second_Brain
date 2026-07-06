@@ -5185,17 +5185,17 @@ function startMasterTimer(){
   if(masterTimerId){clearInterval(masterTimerId);masterTimerId=null;}
   masterTickCount=0;
   masterTimerId=setInterval(()=>{
-    if(document.hidden)return;
     masterTickCount++;
     /* FIX 12: safety reset for stuck _syncMergeInProgress every ~10 min */
     if(masterTickCount%20===0&&_syncMergeInProgress){
       console.warn('Sandy Brain: _syncMergeInProgress stuck, resetting');
       _syncMergeInProgress=false;
     }
-    /* FIX 22: pass fromTimer=true */
+    /* Always check reminders even when tab is hidden/minimized */
     if(masterTickCount%2===0){
       if(typeof checkReminders==='function')checkReminders(true);
     }
+    if(document.hidden)return; /* skip UI redraws when hidden */
     if(masterTickCount%2===0){
       if(typeof applyTheme==='function')applyTheme();
       if(typeof renderHomeReminders==='function')renderHomeReminders();
@@ -10202,16 +10202,25 @@ function buildRemindersPage(){
     // — NOTIFICATION PERMISSION CARD —
     '<div style="background:var(--surface-elevated);backdrop-filter:blur(12px);border-radius:var(--r-xl);border:1px solid rgba(139,92,246,0.05);margin-bottom:20px;overflow:hidden;box-shadow:var(--shadow-card);">'+
     '<div style="padding:16px 20px 14px;border-bottom:1px solid rgba(139,92,246,0.05);display:flex;align-items:center;gap:10px;background:linear-gradient(90deg,rgba(139,92,246,0.02),transparent);">'+
-    '<span style="font-size:18px;">🔔</span>'+
-    '<span style="font-size:15px;font-weight:800;color:var(--text-primary);">Notification permission</span>'+
+    '<span style="font-size:18px;">&#128276;</span>'+
+    '<span style="font-size:15px;font-weight:800;color:var(--text-primary);">Notifications</span>'+
     '</div>'+
-    '<div style="padding:12px 16px;display:flex;align-items:center;gap:10px;" role="status" aria-live="polite">'+
-    '<div id="notif-dot" style="width:10px;height:10px;border-radius:50%;background:#ccc;flex-shrink:0;transition:all 0.2s;"></div>'+
-    '<span id="notif-status-text" style="font-size:11px;font-weight:500;color:var(--text-muted);flex:1;">Checking...</span>'+
-    '<button id="notif-enable-btn" onclick="requestNotifPermission()" style="font-size:11px;font-weight:700;padding:6px 14px;border-radius:var(--r-pill);border:1px solid var(--purple-200);background:var(--purple-100);color:var(--purple-600);cursor:pointer;font-family:var(--font);">Enable</button>'+
+    '<div style="padding:14px 16px 6px;">'+
+    '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">'+
+    '<div id="notif-dot" style="width:10px;height:10px;border-radius:50%;background:#ccc;flex-shrink:0;transition:background 0.2s;"></div>'+
+    '<span id="notif-status-text" style="font-size:12px;font-weight:600;color:var(--text-muted);flex:1;">Checking...</span>'+
+    '<button id="notif-enable-btn" onclick="requestNotifPermission()" style="font-size:11px;font-weight:700;padding:5px 14px;border-radius:20px;border:1.5px solid var(--purple-600);background:transparent;color:var(--purple-600);cursor:pointer;">Enable</button>'+
     '</div>'+
-    '<div style="margin:0 14px 14px;padding:10px 14px;background:var(--blue-50);border:1px solid var(--blue-border);border-radius:var(--r-md);font-size:12px;color:var(--blue-600);">'+
-    'Works best on Android Chrome. On iOS, add to Home Screen first then use Safari.'+
+    '<div id="notif-diagnostic" style="font-size:11px;color:var(--text-muted);background:rgba(139,92,246,0.06);border-radius:8px;padding:8px 12px;margin-bottom:10px;line-height:1.7;"></div>'+
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">'+
+    '<button onclick="testNotification()" style="font-size:12px;font-weight:700;padding:8px 20px;border-radius:10px;border:none;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;cursor:pointer;">&#128276; Send Test</button>'+
+    '<button onclick="schedulePreciseNotifs();updateNotifStatusUI();showToast(\'Reminders re-scheduled\',\'gt\')" style="font-size:12px;font-weight:600;padding:8px 18px;border-radius:10px;border:1.5px solid rgba(139,92,246,0.4);background:transparent;color:var(--purple-600);cursor:pointer;">&#8635; Re-schedule</button>'+
+    '</div>'+
+    '<div style="font-size:11px;color:var(--text-muted);border-top:1px solid rgba(139,92,246,0.08);padding-top:10px;margin-bottom:6px;">'+
+    '&#128241; <b>Mobile:</b> tap Enable above &nbsp;|&nbsp; &#128187; <b>Desktop file://:</b> open '+
+    '<code style="background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:4px;">chrome://settings/content/notifications</code>'+
+    ' &#8594; Add &#8594; type <code style="background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:4px;">file:///</code> &#8594; reload'+
+    '</div>'+
     '</div>'+
     '</div>'+
 
@@ -10345,27 +10354,73 @@ function setReminderFormPriority(p){
   });
 }
 
-function updateNotifStatusUI(){
+function updateNotifStatusUI(permOverride){
   const dot=document.getElementById('notif-dot');
   const txt=document.getElementById('notif-status-text');
   const btn=document.getElementById('notif-enable-btn');
+  const diag=document.getElementById('notif-diagnostic');
   if(!dot||!txt||!btn)return;
   if(!('Notification' in window)){
-    dot.className='notif-status-dot denied';
-    txt.textContent='Not supported on this device.';
-    btn.style.display='none';return;
+    dot.style.background='#ef4444';
+    txt.textContent='Not supported on this browser.';
+    btn.style.display='none';
+    if(diag)diag.textContent='Try Chrome on Android or desktop.';
+    return;
   }
-  const p=Notification.permission;
-  if(p==='granted'){dot.className='notif-status-dot granted';txt.textContent='Notifications enabled!';btn.style.display='none';}
-  else if(p==='denied'){dot.className='notif-status-dot denied';txt.textContent='Blocked — check browser settings.';btn.style.display='block';}
-  else{dot.className='notif-status-dot';txt.textContent='Tap Enable to receive reminders.';btn.style.display='block';}
+  /* permOverride lets callers pass the known value when Notification.permission
+     lags behind on file:// (Chrome timing bug) */
+  const p=permOverride||Notification.permission;
+  const timerCount=Object.keys(_preciseTimers||{}).length;
+  const remCount=(state.reminders||[]).filter(r=>r.enabled).length;
+  const swActive=('serviceWorker' in navigator)&&!!navigator.serviceWorker.controller;
+  if(p==='granted'){
+    dot.style.background='#22c55e';
+    txt.textContent='Notifications enabled!';
+    btn.style.display='none';
+    if(diag)diag.innerHTML=
+      '&#10003; Permission: <b>granted</b><br>'+
+      '&#9200; Scheduled timers: <b>'+timerCount+'</b> / '+remCount+' active reminder'+(remCount!==1?'s':'')+'<br>'+
+      '&#128241; SW: '+(swActive?'&#10003; active (mobile ready)':'not active — desktop file:// uses direct notification')+
+      (timerCount===0&&remCount>0?'<br><b style="color:#f59e0b">&#9888; 0 timers — tap Re-schedule below</b>':'');
+  }else if(p==='denied'){
+    dot.style.background='#ef4444';
+    txt.textContent='Blocked — fix in browser settings';
+    btn.style.display='none';
+    if(diag)diag.innerHTML=
+      '&#10060; Chrome has blocked notifications.<br>'+
+      '<b>Desktop:</b> chrome://settings/content/notifications &#8594; Add &#8594; file:///<br>'+
+      '<b>Mobile:</b> Chrome &#8594; Site Settings &#8594; Notifications &#8594; allow this site';
+  }else{
+    dot.style.background='#f59e0b';
+    txt.textContent='Not enabled yet — tap Enable';
+    btn.style.display='block';
+    if(diag)diag.innerHTML='&#9888; Tap <b>Enable</b> and choose <b>Allow</b> when Chrome asks.';
+  }
 }
 function requestNotifPermission(){
   if(!('Notification' in window)){showToast('Not supported');return;}
   Notification.requestPermission().then(p=>{
-    updateNotifStatusUI();
-    if(p==='granted')showToast('Notifications enabled!','gt');
+    /* Pass p directly — Notification.permission may lag on file:// */
+    updateNotifStatusUI(p);
+    setTimeout(updateNotifStatusUI,300); /* fallback re-read */
+    if(p==='granted'){
+      showToast('Notifications enabled! Reminders are scheduled.','gt');
+      schedulePreciseNotifs();
+    }else if(p==='denied'){
+      showToast('Notifications blocked — check browser settings','rt');
+    }
   });
+}
+function testNotification(){
+  if(!('Notification' in window)){showToast('Notifications not supported','rt');return;}
+  const perm=Notification.permission;
+  if(perm==='default'){
+    /* May be granted but lagging — try firing anyway */
+    requestNotifPermission();
+    return;
+  }
+  if(perm==='denied'){showToast('Notifications blocked — check browser settings','rt');return;}
+  fireNotification('Test ✓','Notifications are working! 🔔','🔔');
 }
 function fireNotification(title,body,icon){
   showInAppNotif(icon||'🔔',title,body);
@@ -10420,7 +10475,10 @@ function checkReminders(fromTimer){
   (state.reminders||[]).forEach(r=>{
     if(!r.enabled)return;
     if(!reminderAppliesToday(r,day,date))return;
-    if(r.time!==time)return;
+    const rParts=(r.time||'').split(':').map(Number);
+    const remMins=rParts[0]*60+(rParts[1]||0);
+    const nowMins=now.getHours()*60+now.getMinutes();
+    if(nowMins<remMins||nowMins-remMins>2)return;
     if(deletedIds.has(r.id))return;
     const key=r.id+'_'+date+'_'+r.time;
     if(firedToday[key])return;
@@ -10430,7 +10488,57 @@ function checkReminders(fromTimer){
   });
   checkMissedTasksBanner();
 }
-function startReminderEngine(){}
+/* ═══════════════════════════════════════════════════
+   PRECISE NOTIFICATION SCHEDULER
+   Sets an exact setTimeout for every upcoming reminder so Chrome
+   fires the notification reliably even when the tab is minimised.
+═══════════════════════════════════════════════════ */
+let _preciseTimers={};
+function _remDateStr(d){
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function schedulePreciseNotifs(){
+  Object.values(_preciseTimers).forEach(h=>clearTimeout(h));
+  _preciseTimers={};
+  const now=new Date();
+  const deletedIds=new Set(state.deletedReminderIds||[]);
+  (state.reminders||[]).forEach(r=>{
+    if(!r.enabled||!r.time||deletedIds.has(r.id))return;
+    const parts=(r.time||'').split(':').map(Number);
+    const hh=parts[0],mm=parts[1];
+    if(isNaN(hh)||isNaN(mm))return;
+    for(let offset=0;offset<=7;offset++){
+      const candidate=new Date(now);
+      candidate.setDate(candidate.getDate()+offset);
+      candidate.setHours(hh,mm,0,0);
+      if(candidate<=now)continue;
+      const dateStr=_remDateStr(candidate);
+      let applies=false;
+      if(reminderHasDate(r)){applies=(r.date===dateStr);}
+      else{applies=(Array.isArray(r.days)&&r.days.includes(candidate.getDay()));}
+      if(!applies)continue;
+      const key=r.id+'_'+dateStr+'_'+r.time;
+      if(firedToday[key])continue;
+      const msUntil=candidate-now;
+      if(msUntil>8*24*60*60*1000)break;
+      _preciseTimers[key]=setTimeout(()=>{
+        delete _preciseTimers[key];
+        if(firedToday[key])return;
+        firedToday[key]=true;
+        saveFiredToday();
+        fireNotification(r.title,r.msg||'',r.icon||'\uD83D\uDD14');
+      },msUntil);
+      break;
+    }
+  });
+}
+function startReminderEngine(){
+  schedulePreciseNotifs();
+  /* Re-run at 00:01 each day so new-day reminders get scheduled */
+  const now=new Date();
+  const midnight=new Date(now);midnight.setHours(24,1,0,0);
+  setTimeout(()=>{startReminderEngine();},midnight-now);
+}
 
 function buildDaysPicker(){
   const w=document.getElementById('days-picker');if(!w)return;
@@ -10889,6 +10997,7 @@ function deleteReminder(i){
     renderReminderList();
     renderHomeReminders();
     showToast('Deleted');
+    if(typeof schedulePreciseNotifs==='function')setTimeout(schedulePreciseNotifs,200);
 }
 
 
@@ -10970,6 +11079,7 @@ renderReminderList();renderHomeReminders();
   buildDaysPicker();
   if(typeof setReminderFormPriority==='function')setReminderFormPriority('medium');
   showToast(wasEditing?'Reminder updated!':'Reminder set for '+(dateVal?reminderDateLabel(dateVal)+' at ':'')+formatTime12(timeVal)+'!','gt');
+  if(typeof schedulePreciseNotifs==='function')setTimeout(schedulePreciseNotifs,200);
 }
 
 /* ═══════════════════════════════════════════════════
@@ -13329,7 +13439,7 @@ console.log('%cNotes module loaded (no image upload) ✅','color:#7C3AED;font-we
 /* ═══════════════════════════════════════════════════
    SERVICE WORKER SOURCE
 ═══════════════════════════════════════════════════ */
-const SW_CACHE_NAME='sandy-brain-v10';
+const SW_CACHE_NAME='sandy-brain-v11';
 const SW_SOURCE=`
 'use strict';
 const CACHE_NAME='${SW_CACHE_NAME}';
@@ -13718,7 +13828,9 @@ window.toggleReminder=toggleReminder;
 window.deleteReminder=deleteReminder;
 window.updateNotifStatusUI=updateNotifStatusUI;
 window.requestNotifPermission=requestNotifPermission;
+window.testNotification=testNotification;
 window.fireNotification=fireNotification;
+window.schedulePreciseNotifs=schedulePreciseNotifs;
 window.buildSettingsPage=buildSettingsPage;
 window.buildSettingsPageShell=buildSettingsPageShell;
 window.scrollToAddHabit=scrollToAddHabit;
@@ -13837,10 +13949,21 @@ async function init(){
     buildDaysPicker();
     buildPresetChips();
     updateNotifStatusUI();
+    /* Auto-request on startup: file:// doesn't persist Notification.permission
+       between sessions. If site is in Chrome's allow list this resolves
+       instantly as 'granted' with no popup shown to user. */
+    if('Notification' in window&&Notification.permission==='default'){
+      Notification.requestPermission().then(function(p){
+        updateNotifStatusUI(p);
+        setTimeout(updateNotifStatusUI,300);
+        if(p==='granted')schedulePreciseNotifs();
+      });
+    }
     startMasterTimer();
     scheduleMidnightReset();
     _reminderFirstCheck=true;
     checkReminders(false);
+    startReminderEngine();
     registerInlineServiceWorker();
     const hash=window.location.hash.replace('#','').trim();
     if(hash){
@@ -13866,6 +13989,10 @@ async function init(){
       if(careerSnap.exists())applyCareerDoc(careerSnap.val());
       if(junkSugarSnap.exists())applyJunkSugarDoc(junkSugarSnap.val(),'load');
       if(configSnap.exists())applyConfigDoc(configSnap.val());
+      /* BUG FIX: rebuild Today sections immediately if Firebase had newer habits/sections.
+         Without this, the new habits added on mobile don't appear until the realtime
+         listener fires a second later (causing the visible stale-data gap). */
+      if(typeof rebuildTodaySections==='function')rebuildTodaySections();
       jnkRecalculateAndRender('startup');
       _firebaseLoaded=true;
       try{safeLocalStorageSave(DB_KEY,JSON.stringify(state));}catch(e){}
