@@ -4970,6 +4970,8 @@ async function _doSave(){
     saveFailCount=0;
     lastSavedVersion=saveVersion;
     clearDirty();
+    /* HABIT NOTIFICATIONS: reschedule precise timers after habit/reminder edits. */
+    try{if(typeof schedulePreciseNotifs==='function')schedulePreciseNotifs();}catch(e){}
   }catch(err){
     console.warn('Firebase RTDB save error:',err);
     updateFbStatus('offline');
@@ -5266,7 +5268,9 @@ function handleDailyReset(){
   // Preserve last studied date as permanent streak/history metadata.
   state.missedBannerDismissedDate='';
   state.missedHighlightsShown=false;
-  state.lastResetTimestamp=Date.now();
+  /* SYNC FIX 2026-07-18: anchor to today midnight (deterministic across devices);
+     prevents the second-device-open-wipes-first-device bug in applyDailyDoc mergeChecks. */
+  state.lastResetTimestamp=new Date(new Date().setHours(0,0,0,0)).getTime();
   state.waterUpdatedAt=state.lastResetTimestamp;
   firedToday={};
   _cachedLastWeekAvg=null;
@@ -11041,14 +11045,30 @@ function testNotification(){
 function fireNotification(title,body,icon){
   showInAppNotif(icon||'🔔',title,body);
   renderHomeReminders();
-  if('Notification' in window&&Notification.permission==='granted'){
-    try{
-      new Notification(title,{
-        body:body||'',
-        icon:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A7%A0%3C/text%3E%3C/svg%3E",
-        tag:title+'_'+new Date().toISOString().slice(0,16)
-      });
-    }catch(e){}
+  if(!('Notification' in window)||Notification.permission!=='granted')return;
+  /* MOBILE FIX 2026-07-18: prefer ServiceWorkerRegistration.showNotification()
+     because Android Chrome BLOCKS `new Notification()` (throws Illegal constructor).
+     Fall back to the constructor only when no SW is available (desktop file:// etc). */
+  const opts={
+    body:body||'',
+    icon:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A7%A0%3C/text%3E%3C/svg%3E",
+    badge:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A7%A0%3C/text%3E%3C/svg%3E",
+    tag:title+'_'+new Date().toISOString().slice(0,16),
+    renotify:true,
+    requireInteraction:false,
+    vibrate:[200,100,200]
+  };
+  if('serviceWorker' in navigator&&navigator.serviceWorker.ready){
+    navigator.serviceWorker.ready.then(reg=>{
+      try{reg.showNotification(title,opts);}
+      catch(swErr){
+        try{new Notification(title,opts);}catch(e){}
+      }
+    }).catch(()=>{
+      try{new Notification(title,opts);}catch(e){}
+    });
+  }else{
+    try{new Notification(title,opts);}catch(e){}
   }
 }
 
@@ -11102,6 +11122,23 @@ function checkReminders(fromTimer){
     saveFiredToday();
     fireNotification(r.title,r.msg,r.icon);
   });
+  /* HABIT NOTIFICATIONS 2026-07-18: fire alerts for habits with a time set,
+     skipping any habit already checked today. Same +2min catch-up window. */
+  (state.habits||[]).forEach(h=>{
+    if(!h||!h.time)return;
+    if(state.checks&&state.checks[h.id])return;
+    const hParts=(h.time||'').split(':').map(Number);
+    if(hParts.length<2||isNaN(hParts[0])||isNaN(hParts[1]))return;
+    const hMins=hParts[0]*60+(hParts[1]||0);
+    const nowMinsH=now.getHours()*60+now.getMinutes();
+    if(nowMinsH<hMins||nowMinsH-hMins>2)return;
+    const key='habit_'+h.id+'_'+date+'_'+h.time;
+    if(firedToday[key])return;
+    firedToday[key]=true;
+    saveFiredToday();
+    const icon=(h.emoji||h.icon||h.presetIcon||'\u23F0');
+    fireNotification(h.name||'Task reminder','Time for: '+(h.name||'your task'),icon);
+  });
   checkMissedTasksBanner();
 }
 /* ═══════════════════════════════════════════════════
@@ -11143,6 +11180,35 @@ function schedulePreciseNotifs(){
         firedToday[key]=true;
         saveFiredToday();
         fireNotification(r.title,r.msg||'',r.icon||'\uD83D\uDD14');
+      },msUntil);
+      break;
+    }
+  });
+  /* HABIT NOTIFICATIONS 2026-07-18: precise setTimeout for habit times so
+     notifications fire even when tab is minimised. Next 2 days only. */
+  (state.habits||[]).forEach(h=>{
+    if(!h||!h.time)return;
+    const parts=(h.time||'').split(':').map(Number);
+    const hh=parts[0],mm=parts[1];
+    if(isNaN(hh)||isNaN(mm))return;
+    for(let offset=0;offset<=1;offset++){
+      const candidate=new Date(now);
+      candidate.setDate(candidate.getDate()+offset);
+      candidate.setHours(hh,mm,0,0);
+      if(candidate<=now)continue;
+      const dateStr=_remDateStr(candidate);
+      const key='habit_'+h.id+'_'+dateStr+'_'+h.time;
+      if(firedToday[key])continue;
+      const msUntil=candidate-now;
+      if(msUntil>2*24*60*60*1000)break;
+      _preciseTimers[key]=setTimeout(()=>{
+        delete _preciseTimers[key];
+        if(firedToday[key])return;
+        if(dateStr===todayKey()&&state.checks&&state.checks[h.id])return;
+        firedToday[key]=true;
+        saveFiredToday();
+        const icon=(h.emoji||h.icon||h.presetIcon||'\u23F0');
+        fireNotification(h.name||'Task reminder','Time for: '+(h.name||'your task'),icon);
       },msUntil);
       break;
     }
@@ -14385,7 +14451,7 @@ console.log('%cNotes module loaded (no image upload) ✅','color:#7C3AED;font-we
 /* ═══════════════════════════════════════════════════
    SERVICE WORKER SOURCE
 ═══════════════════════════════════════════════════ */
-const SW_CACHE_NAME='sandy-brain-v30';
+const SW_CACHE_NAME='sandy-brain-v33';
 const SW_SOURCE=`
 'use strict';
 const CACHE_NAME='${SW_CACHE_NAME}';
