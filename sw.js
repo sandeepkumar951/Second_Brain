@@ -16,8 +16,8 @@
    depends on the page being alive.
 ============================================================ */
 
-const SW_VERSION  = 'v233';
-const CACHE_NAME  = 'sandy-brain-proto-v233';
+const SW_VERSION  = 'v235';
+const CACHE_NAME  = 'sandy-brain-proto-v235';
 const NOTIF_STORE = 'ssb-notif-state-v1';
 const ASSETS      = ['./', 'manifest.json'];
 
